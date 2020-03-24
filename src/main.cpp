@@ -1,3 +1,27 @@
+//
+// MIT License
+//
+// Copyright (c) 2020 Stuart Wilkins
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
+
 #include <Arduino.h>
 #include <bluefruit.h>
 #include <Adafruit_NeoPixel.h>
@@ -39,8 +63,7 @@ void timer2_callback(TimerHandle_t timer) {
   digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
 }
 
-void scan_callback(ble_gap_evt_adv_report_t* report)
-{
+void scan_callback(ble_gap_evt_adv_report_t* report) {
   if ( Bluefruit.Scanner.checkReportForService(report, clientSandC) ) {
     Serial.print("Found device with MAC ");
     Serial.printBufferReverse(report->peer_addr.addr, 6, ':');
@@ -52,8 +75,7 @@ void scan_callback(ble_gap_evt_adv_report_t* report)
   }
 }
 
-void connect_callback(uint16_t conn_handle)
-{
+void connect_callback(uint16_t conn_handle) {
   if ( !clientSandC.discover(conn_handle) ) {
     Bluefruit.disconnect(conn_handle);
     Serial.println("Unable to discover device.");
@@ -69,8 +91,7 @@ void connect_callback(uint16_t conn_handle)
   indicator.show();
 }
 
-void disconnect_callback(uint16_t conn_handle, uint8_t reason)
-{
+void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   (void) conn_handle;
 
   Serial.print("Disconnected, reason = 0x");
@@ -95,7 +116,7 @@ void setup() {
   // Setup Serial Monitor
 
   Serial.begin(115200);
-  while ( !Serial ) delay(10);   // for nrf52840 with native usb
+  while (!Serial) delay(10);   // for nrf52840 with native usb
 
   // Setup Bluetooth
 
@@ -129,7 +150,7 @@ void setup() {
 
   Bluefruit.Scanner.setRxCallback(scan_callback);
   Bluefruit.Scanner.restartOnDisconnect(true);
-  Bluefruit.Scanner.setInterval(160, 80); // in unit of 0.625 ms
+  Bluefruit.Scanner.setInterval(160, 80);  // in unit of 0.625 ms
   Bluefruit.Scanner.useActiveScan(false);
   Bluefruit.Scanner.start(0);
 
