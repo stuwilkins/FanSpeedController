@@ -12,6 +12,7 @@ class BLEClientCharacteristicSandC : public BLEClientCharacteristic {
   public:
     BLEClientCharacteristicSandC(void);
     int process(uint8_t *data, uint16_t len);
+    int calculate(void) {}
 
   private:
     float _wheel_circ;
@@ -39,7 +40,7 @@ class BLEClientSandC : public BLEClientService
     bool enableNotify(void);
     bool disableNotify(void);
 
-    BLEClientCharacteristic* getSandC(void) {
+    BLEClientCharacteristicSandC* getSandC(void) {
       return &_sandc;
     }
 
