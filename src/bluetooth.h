@@ -25,5 +25,9 @@
 #ifndef SRC_BLUETOOTH_H_
 #define SRC_BLUETOOTH_H_
 
+#define BT_NAME         "FAN_CONTROLLER"
+
+void setup_bluetooth(void);
+void calculate_bluetooth(void);
 
 #endif  // SRC_BLUETOOTH_H_

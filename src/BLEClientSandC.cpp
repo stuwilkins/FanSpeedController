@@ -68,9 +68,9 @@ int BLEClientCharacteristicSandC::calculate(void) {
 int BLEClientCharacteristicSandC::process(uint8_t *data, uint16_t len) {
     // First set the valid flag to zero
 
-    Serial.print("Data = ");
-    Serial.printBuffer(data, len, ':');
-    Serial.println();
+    // Serial.print("Data = ");
+    // Serial.printBuffer(data, len, ':');
+    // Serial.println();
 
     _valid = 0;
 
@@ -114,15 +114,15 @@ int BLEClientCharacteristicSandC::process(uint8_t *data, uint16_t len) {
     }
 
     // Print some debug
-    if (flags & SANDC_SPEED) {
-        Serial.printf("Speed : revs %d : event_time %d\n",
-          _wheel_revs, _wheel_event_time);
-    }
+    // if (flags & SANDC_SPEED) {
+    //     Serial.printf("Speed : revs %d : event_time %d\n",
+    //       _wheel_revs, _wheel_event_time);
+    // }
 
-    if (flags & SANDC_CADENCE) {
-        Serial.printf("Cadence : revs %d : event_time %d\n",
-          _crank_revs, _crank_event_time);
-    }
+    // if (flags & SANDC_CADENCE) {
+    //     Serial.printf("Cadence : revs %d : event_time %d\n",
+    //       _crank_revs, _crank_event_time);
+    // }
 
     _valid = flags;
     return 0;

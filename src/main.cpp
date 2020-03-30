@@ -23,18 +23,16 @@
 //
 
 #include <Arduino.h>
-#include <bluefruit.h>
 #include <Adafruit_NeoPixel.h>
-#include "BLEClientSandC.h"
 #include "inttimer.h"
 #include "wifi.h"
+#include "bluetooth.h"
 
 #define PIN_MAINS_CLOCK       6
 #define PIN_FAN_1             5
 #define PIN_FAN_2             9
 #define SERIAL_TIMEOUT        15000
 
-#define BT_NAME         "FAN_CONTROLLER"
 
 //
 // User Interface
@@ -44,12 +42,6 @@ Adafruit_NeoPixel indicator(1, PIN_NEOPIXEL, NEO_GRB);
 #define INDICATOR_BOOT        indicator.Color(255, 255, 0)
 #define INDICATOR_OK          indicator.Color(0, 255, 0)
 #define INDICATOR_CONNECTED   indicator.Color(0, 0, 255)
-
-//
-// Bluetooth Setup
-//
-
-BLEClientSandC  clientSandC;
 
 //
 // ISR / Timer
@@ -119,43 +111,6 @@ float calc_mains_freq(void) {
   return _freq;
 }
 
-void scan_callback(ble_gap_evt_adv_report_t* report) {
-  if ( Bluefruit.Scanner.checkReportForService(report, clientSandC) ) {
-    Serial.print("Found device with MAC ");
-    Serial.printBufferReverse(report->peer_addr.addr, 6, ':');
-    Serial.println();
-    Serial.printf("Signal %14s %d dBm\n", "RSSI", report->rssi);
-    Bluefruit.Central.connect(report);
-  } else {
-    Bluefruit.Scanner.resume();
-  }
-}
-
-void connect_callback(uint16_t conn_handle) {
-  if ( !clientSandC.discover(conn_handle) ) {
-    Bluefruit.disconnect(conn_handle);
-    Serial.println("Unable to discover device.");
-    return;
-  }
-
-  if ( !clientSandC.enableNotify() ) {
-    Serial.println("Couldn't enable notify for SandC Measurement.");
-    return;
-  }
-
-  indicator.setPixelColor(0, INDICATOR_CONNECTED);
-  indicator.show();
-}
-
-void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
-  (void) conn_handle;
-
-  Serial.print("Disconnected, reason = 0x");
-  Serial.println(reason, HEX);
-  indicator.setPixelColor(0, INDICATOR_OK);
-  indicator.show();
-}
-
 void setup() {
   // Setup Input / Output
 
@@ -181,41 +136,15 @@ void setup() {
   while (!Serial && ((millis() - _start < SERIAL_TIMEOUT))) {
     delay(10);   // for nrf52840 with native usb
   }
-  // Setup Bluetooth
-
-  Bluefruit.begin(0, 1);
-  Bluefruit.setName(BT_NAME);
   // Setup timer
 
   timer1.setCallback(hardtimer_callback);
   timer1.init(5);
   timer1.start();
   digitalWrite(LED_BUILTIN, LOW);
-  // timer2.setCallback(timer2_callback);
 
-  // softtimer = xTimerCreate("Data Timer", pdMS_TO_TICKS(3000),
-  //   pdTRUE, 0, softtimer_callback);
-
-  // if (softtimer == NULL) {
-  //   Serial.println("Timer 1 can not be created");
-  // } else {
-  //   xTimerStart(softtimer, 0);
-  // }
-
-  // Configure Speed and Cadence Client
-  clientSandC.begin();
-
-  // Increase Blink rate to different from PrPh advertising mode
-  Bluefruit.setConnLedInterval(500);
-
-  Bluefruit.Central.setConnectCallback(connect_callback);
-  Bluefruit.Central.setDisconnectCallback(disconnect_callback);
-
-  Bluefruit.Scanner.setRxCallback(scan_callback);
-  Bluefruit.Scanner.restartOnDisconnect(true);
-  Bluefruit.Scanner.setInterval(160, 80);  // in unit of 0.625 ms
-  Bluefruit.Scanner.useActiveScan(false);
-  Bluefruit.Scanner.start(0);
+  // Setup Bluetooth
+  setup_bluetooth();
 
   // Setup WiFi
   setup_wifi();
@@ -242,6 +171,8 @@ void loop() {
   delay(250);
   Serial.print("Hardtimer count = ");
   Serial.println(hardtimer_count);
+  delay(250);
+  calculate_bluetooth();
   // if ( Bluefruit.Central.connected() )
   // {
   //   // Not discovered yet
