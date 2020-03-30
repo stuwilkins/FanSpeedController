@@ -25,16 +25,28 @@
 #include <Arduino.h>
 #include <bluefruit.h>
 #include <Adafruit_NeoPixel.h>
+#include <SPI.h>
+#include <WiFiNINA.h>
 #include "BLEClientSandC.h"
+#include "inttimer.h"
+
+#define PIN_MAINS_CLOCK       6
+#define PIN_FAN_1             5
+#define PIN_FAN_2             9
 
 #define BT_NAME         "FAN_CONTROLLER"
+
+#define SPIWIFI       SPI  // The SPI port
+#define SPIWIFI_SS    13   // Chip select pin
+#define ESP32_RESETN  12   // Reset pin
+#define SPIWIFI_ACK   11   // a.k.a BUSY or READY pin
+#define ESP32_GPIO0   -1
 
 //
 // User Interface
 //
 
 Adafruit_NeoPixel indicator(1, PIN_NEOPIXEL, NEO_GRB);
-
 #define INDICATOR_BOOT        indicator.Color(255, 255, 0)
 #define INDICATOR_OK          indicator.Color(0, 255, 0)
 #define INDICATOR_CONNECTED   indicator.Color(0, 0, 255)
@@ -49,18 +61,63 @@ BLEClientSandC  clientSandC;
 // ISR / Timer
 //
 
-TimerHandle_t timer1;
-TimerHandle_t timer2;
+// TimerHandle_t softtimer;
+TimerClass timer1(4, 0);
+// TimerClass timer2(4, 0);
 
-void timer1_callback(TimerHandle_t timer) {
-  (void) timer;
-  // digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+volatile int zero_cross_clock = 0;
+unsigned long zero_cross_last_clock = 0;
+volatile bool zero_cross_trigger_1 = false;
+volatile bool zero_cross_trigger_2 = false;
+volatile long int zero_cross_micros = 0;
+unsigned long fan1_delay = 0;
+unsigned long fan2_delay = 0;
+unsigned long hardtimer_count = 0;
+
+void zero_crossing_isr(void) {
+  zero_cross_clock++;
+  zero_cross_trigger_1 = true;
+  zero_cross_trigger_2 = true;
+  zero_cross_micros = micros();
 }
 
-void timer2_callback(TimerHandle_t timer) {
-  (void) timer;
-  clientSandC.getSandC()->calculate();
-  digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+void hardtimer_callback(void) {
+  // if (fan1_delay > 0) {
+  //   if (zero_cross_trigger_1) {
+  //     if ((micros() - zero_cross_micros) > fan1_delay) {
+  //       digitalWrite(PIN_FAN_1, HIGH);
+  //       delayMicroseconds(50);
+  //       digitalWrite(PIN_FAN_1, LOW);
+  //       zero_cross_trigger_1 = false;
+  //     }
+  //   }
+  // } else {
+  //   zero_cross_trigger_1 = false;
+  // }
+
+  if (zero_cross_trigger_2) {
+    if ((micros() - zero_cross_micros) > fan2_delay)
+    {
+      digitalWrite(PIN_FAN_2, HIGH);
+      delayMicroseconds(50);
+      digitalWrite(PIN_FAN_2, LOW);
+      zero_cross_trigger_2 = false;
+    }
+  }
+
+  hardtimer_count++;
+  timer1.attachInterrupt(5);
+}
+
+float calc_mains_freq(void) {
+  float _freq = zero_cross_clock;
+  _freq /= ((float)millis() - (float)zero_cross_last_clock);
+  _freq *= 500;  // Convert to seconds (and 2 per cycle)
+
+  zero_cross_last_clock = millis();
+  zero_cross_clock = 0;
+
+  return _freq;
 }
 
 void scan_callback(ble_gap_evt_adv_report_t* report) {
@@ -103,8 +160,13 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
 void setup() {
   // Setup Input / Output
 
-  pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(PIN_NEOPIXEL, INPUT_PULLUP);
+  pinMode(LED_BUILTIN,      OUTPUT);
+  pinMode(PIN_NEOPIXEL,     INPUT_PULLUP);
+  pinMode(PIN_MAINS_CLOCK,  INPUT_PULLUP);
+  pinMode(PIN_FAN_1,        OUTPUT);
+  pinMode(PIN_FAN_2,        OUTPUT);
+  digitalWrite(PIN_FAN_1,   LOW);
+  digitalWrite(PIN_FAN_2,   LOW);
 
   // Start, set indicator to RED
 
@@ -124,20 +186,20 @@ void setup() {
   Bluefruit.setName(BT_NAME);
   // Setup timer
 
-  digitalWrite(LED_BUILTIN, 1);
-  //  timer.begin(1, flash_led);
-  // timer.start();
+  timer1.setCallback(hardtimer_callback);
+  timer1.init();
+  timer1.attachInterrupt(5);
+  digitalWrite(LED_BUILTIN, LOW);
+  // timer2.setCallback(timer2_callback);
 
-  timer1 = xTimerCreate("TRIAC Timer", pdMS_TO_TICKS(10),
-    pdTRUE, 0, timer1_callback);
-  timer2 = xTimerCreate("Data Timer", pdMS_TO_TICKS(5000),
-    pdTRUE, 0, timer2_callback);
+  // softtimer = xTimerCreate("Data Timer", pdMS_TO_TICKS(3000),
+  //   pdTRUE, 0, softtimer_callback);
 
-  if (timer1 == NULL) {
-    Serial.println("Timer can not be created");
-  } else {
-    xTimerStart(timer1, 0);
-  }
+  // if (softtimer == NULL) {
+  //   Serial.println("Timer 1 can not be created");
+  // } else {
+  //   xTimerStart(softtimer, 0);
+  // }
 
   // Configure Speed and Cadence Client
   clientSandC.begin();
@@ -154,11 +216,37 @@ void setup() {
   Bluefruit.Scanner.useActiveScan(false);
   Bluefruit.Scanner.start(0);
 
+  // Setup WiFi
+  WiFi.setPins(SPIWIFI_SS, SPIWIFI_ACK, ESP32_RESETN, ESP32_GPIO0, &SPIWIFI);
+  if (WiFi.status() == WL_NO_MODULE) {
+    Serial.println("Communication with WiFi module failed!");
+    // don't continue
+    while (true);
+  }
+  Serial.print("Wifi firmware :");
+  Serial.println(WiFi.firmwareVersion());
+
   indicator.setPixelColor(0, INDICATOR_OK);
   indicator.show();
+
+  fan1_delay = 0;
+  fan2_delay = 1;
+
+  attachInterrupt(digitalPinToInterrupt(PIN_MAINS_CLOCK), zero_crossing_isr, FALLING);
 }
 
 void loop() {
+  Serial.print("Mains Frequency = ");
+  Serial.println(calc_mains_freq());
+  delay(250);
+  Serial.print("Fan 1 period = ");
+  Serial.println(fan1_delay);
+  delay(250);
+  Serial.print("Fan 2 period = ");
+  Serial.println(fan2_delay);
+  delay(250);
+  Serial.print("Hardtimer count = ");
+  Serial.println(hardtimer_count);
   // if ( Bluefruit.Central.connected() )
   // {
   //   // Not discovered yet
@@ -179,5 +267,5 @@ void loop() {
   // }
   // // put your main code here, to run repeatedly:
 
-  delay(100);
+  delay(2000);
 }

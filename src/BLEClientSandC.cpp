@@ -38,6 +38,31 @@ BLEClientCharacteristicSandC::BLEClientCharacteristicSandC(void)
     _last_wheel_event_time = 0;
     _last_crank_revs = 0;
     _last_crank_event_time = 0;
+
+    _wheel_speed = 0;
+    _crank_speed = 0;
+}
+
+int BLEClientCharacteristicSandC::calculate(void) {
+  // This routine calculates the speed based
+  uint32_t _revs = _last_wheel_revs - _wheel_revs;
+  uint16_t _time = _last_wheel_event_time - _wheel_event_time;
+
+  _last_wheel_revs = _wheel_revs;
+  _last_wheel_event_time = _wheel_event_time;
+
+  if (_time != 0) {
+    // Check if we can calculate
+    _wheel_speed = static_cast<float>(_revs) / static_cast<float>(_time);
+    _wheel_speed *= 2096;  // Wheel circumference
+    _wheel_speed /= 1024;  // Convert to seconds
+    _wheel_speed *= 0.00223694;  // mm.s^-1 to mph
+  } else {
+    _wheel_speed = 0;
+  }
+
+  Serial.printf("Wheel speed = %f\n", _wheel_speed);
+  return 0;
 }
 
 int BLEClientCharacteristicSandC::process(uint8_t *data, uint16_t len) {

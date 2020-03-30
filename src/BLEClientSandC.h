@@ -36,11 +36,15 @@ class BLEClientCharacteristicSandC : public BLEClientCharacteristic {
  public:
   BLEClientCharacteristicSandC(void);
   int process(uint8_t *data, uint16_t len);
-  int calculate(void) {}
+  int calculate(void);
 
  private:
-  float _wheel_circ;
   bool _valid;
+
+  float _wheel_circ;
+  float _wheel_speed;
+  float _crank_speed;
+
   uint32_t _wheel_revs;
   uint16_t _wheel_event_time;
   uint16_t _crank_revs;
