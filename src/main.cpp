@@ -111,7 +111,7 @@ float calc_mains_freq(void) {
   float _freq = zero_cross_clock;
   float _diff = (static_cast<float>(millis())
     - static_cast<float>(zero_cross_last_clock));
-  if (diff == 0) {
+  if (_diff == 0) {
     return 0;
   }
 
