@@ -21,3 +21,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
+
+#include <SPI.h>
+#include <WiFiNINA.h>
+#include "wifi.h"
+
+void setup_wifi(void) {
+  WiFi.setPins(SPIWIFI_SS, SPIWIFI_ACK, ESP32_RESETN, ESP32_GPIO0, &SPIWIFI);
+  if (WiFi.status() == WL_NO_MODULE) {
+    Serial.println("Communication with WiFi module failed!");
+    // don't continue
+    while (true) {}
+  }
+  Serial.print("Wifi firmware :");
+  Serial.println(WiFi.firmwareVersion());
+}

@@ -25,22 +25,16 @@
 #include <Arduino.h>
 #include <bluefruit.h>
 #include <Adafruit_NeoPixel.h>
-#include <SPI.h>
-#include <WiFiNINA.h>
 #include "BLEClientSandC.h"
 #include "inttimer.h"
+#include "wifi.h"
 
 #define PIN_MAINS_CLOCK       6
 #define PIN_FAN_1             5
 #define PIN_FAN_2             9
+#define SERIAL_TIMEOUT        15000
 
 #define BT_NAME         "FAN_CONTROLLER"
-
-#define SPIWIFI       SPI  // The SPI port
-#define SPIWIFI_SS    13   // Chip select pin
-#define ESP32_RESETN  12   // Reset pin
-#define SPIWIFI_ACK   11   // a.k.a BUSY or READY pin
-#define ESP32_GPIO0   -1
 
 //
 // User Interface
@@ -183,8 +177,10 @@ void setup() {
   // Setup Serial Monitor
 
   Serial.begin(115200);
-  while (!Serial) delay(10);   // for nrf52840 with native usb
-
+  unsigned long _start = millis();
+  while (!Serial && ((millis() - _start < SERIAL_TIMEOUT))) {
+    delay(10);   // for nrf52840 with native usb
+  }
   // Setup Bluetooth
 
   Bluefruit.begin(0, 1);
@@ -222,14 +218,7 @@ void setup() {
   Bluefruit.Scanner.start(0);
 
   // Setup WiFi
-  WiFi.setPins(SPIWIFI_SS, SPIWIFI_ACK, ESP32_RESETN, ESP32_GPIO0, &SPIWIFI);
-  if (WiFi.status() == WL_NO_MODULE) {
-    Serial.println("Communication with WiFi module failed!");
-    // don't continue
-    while (true) {}
-  }
-  Serial.print("Wifi firmware :");
-  Serial.println(WiFi.firmwareVersion());
+  setup_wifi();
 
   indicator.setPixelColor(0, INDICATOR_OK);
   indicator.show();

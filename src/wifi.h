@@ -25,4 +25,12 @@
 #ifndef SRC_WIFI_H_
 #define SRC_WIFI_H_
 
+#define SPIWIFI       SPI  // The SPI port
+#define SPIWIFI_SS    13   // Chip select pin
+#define ESP32_RESETN  12   // Reset pin
+#define SPIWIFI_ACK   11   // a.k.a BUSY or READY pin
+#define ESP32_GPIO0   -1
+
+void setup_wifi(void);
+
 #endif  // SRC_WIFI_H_
