@@ -14,4 +14,4 @@ install:
 
 script:
     - platformio run
-    - cpplint --filter=-build/include_subdir --filter=-runtime/int --filter=-build/include_subdir --recursive src/* include/*
+    - cpplint --filter=-build/include_subdir,-runtime/int --recursive src/* include/*
