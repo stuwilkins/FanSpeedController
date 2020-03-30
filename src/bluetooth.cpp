@@ -35,6 +35,9 @@ void scan_callback(ble_gap_evt_adv_report_t* report) {
     Serial.println();
     Serial.printf("Signal %14s %d dBm\n", "RSSI", report->rssi);
     Bluefruit.Central.connect(report);
+
+    // Add check here if MAC is correct
+
   } else {
     Bluefruit.Scanner.resume();
   }
@@ -70,7 +73,6 @@ void setup_bluetooth(void) {
   Bluefruit.setName(BT_NAME);
   clientSandC.begin();
 
-  // Increase Blink rate to different from PrPh advertising mode
   Bluefruit.setConnLedInterval(250);
 
   Bluefruit.Central.setConnectCallback(connect_callback);
