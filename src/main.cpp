@@ -62,7 +62,7 @@ BLEClientSandC  clientSandC;
 //
 
 // TimerHandle_t softtimer;
-TimerClass timer1(4, 0);
+TimerClass timer1(4);
 // TimerClass timer2(4, 0);
 
 volatile int zero_cross_clock = 0;
