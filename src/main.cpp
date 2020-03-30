@@ -82,18 +82,18 @@ void zero_crossing_isr(void) {
 }
 
 void hardtimer_callback(void) {
-  // if (fan1_delay > 0) {
-  //   if (zero_cross_trigger_1) {
-  //     if ((micros() - zero_cross_micros) > fan1_delay) {
-  //       digitalWrite(PIN_FAN_1, HIGH);
-  //       delayMicroseconds(50);
-  //       digitalWrite(PIN_FAN_1, LOW);
-  //       zero_cross_trigger_1 = false;
-  //     }
-  //   }
-  // } else {
-  //   zero_cross_trigger_1 = false;
-  // }
+  if (fan1_delay > 0) {
+    if (zero_cross_trigger_1) {
+      if ((micros() - zero_cross_micros) > fan1_delay) {
+        digitalWrite(PIN_FAN_1, HIGH);
+        delayMicroseconds(50);
+        digitalWrite(PIN_FAN_1, LOW);
+        zero_cross_trigger_1 = false;
+      }
+    }
+  } else {
+    zero_cross_trigger_1 = false;
+  }
 
   if (zero_cross_trigger_2) {
     if ((micros() - zero_cross_micros) > fan2_delay)
@@ -106,7 +106,6 @@ void hardtimer_callback(void) {
   }
 
   hardtimer_count++;
-  timer1.attachInterrupt(5);
 }
 
 float calc_mains_freq(void) {
@@ -187,8 +186,8 @@ void setup() {
   // Setup timer
 
   timer1.setCallback(hardtimer_callback);
-  timer1.init();
-  timer1.attachInterrupt(5);
+  timer1.init(5);
+  timer1.start();
   digitalWrite(LED_BUILTIN, LOW);
   // timer2.setCallback(timer2_callback);
 

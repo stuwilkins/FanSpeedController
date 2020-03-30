@@ -8,16 +8,14 @@ typedef void (*funcPtr_t)();
 class TimerClass {
     public:
         TimerClass(int timer = 1, int channel = 0);
-        void init(void);
+        void init(int microsecs);
         void setCallback(funcPtr_t callback);
-        void attachInterrupt(int microsec);
-        void setup(int microsec);
+        void start(void);
         static void trigger(TimerClass* ctx) {
             if(ctx) ctx->process();
         }
     private:
         void process(void);
-        inline void detachInterrupt();
         void setNVIC(IRQn_Type IRQn);
         NRF_TIMER_Type*        nrf_timer;
         nrf_timer_cc_channel_t cc_channel;
