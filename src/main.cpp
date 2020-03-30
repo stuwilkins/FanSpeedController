@@ -96,8 +96,7 @@ void hardtimer_callback(void) {
   }
 
   if (zero_cross_trigger_2) {
-    if ((micros() - zero_cross_micros) > fan2_delay)
-    {
+    if ((micros() - zero_cross_micros) > fan2_delay) {
       digitalWrite(PIN_FAN_2, HIGH);
       delayMicroseconds(50);
       digitalWrite(PIN_FAN_2, LOW);
@@ -110,7 +109,14 @@ void hardtimer_callback(void) {
 
 float calc_mains_freq(void) {
   float _freq = zero_cross_clock;
-  _freq /= ((float)millis() - (float)zero_cross_last_clock);
+  float _diff = (static_cast<float>(millis())
+    - static_cast<float>(zero_cross_last_clock));
+  if (diff == 0) {
+    return 0;
+  }
+
+  // Catch divide by zero
+  _freq /= _diff;
   _freq *= 500;  // Convert to seconds (and 2 per cycle)
 
   zero_cross_last_clock = millis();
@@ -220,7 +226,7 @@ void setup() {
   if (WiFi.status() == WL_NO_MODULE) {
     Serial.println("Communication with WiFi module failed!");
     // don't continue
-    while (true);
+    while (true) {}
   }
   Serial.print("Wifi firmware :");
   Serial.println(WiFi.firmwareVersion());
@@ -231,7 +237,8 @@ void setup() {
   fan1_delay = 0;
   fan2_delay = 1;
 
-  attachInterrupt(digitalPinToInterrupt(PIN_MAINS_CLOCK), zero_crossing_isr, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PIN_MAINS_CLOCK),
+    zero_crossing_isr, FALLING);
 }
 
 void loop() {
