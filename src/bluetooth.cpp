@@ -26,6 +26,7 @@
 #include "BLEClient.h"
 #include "bluetooth.h"
 
+BLEUart bleuart;
 BLEClientSandC  clientSandC;
 BLEClientPower  clientPower;
 
@@ -102,24 +103,72 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   // indicator.show();
 }
 
+void uart_connect_callback(uint16_t conn_handle) {
+  (void) conn_handle;
+  Serial.println("Connected");
+}
+
+void uart_disconnect_callback(uint16_t conn_handle, uint8_t reason) {
+  (void) reason;
+  (void) conn_handle;
+
+  Serial.println();
+  Serial.println("Disconnected");
+  Serial.println("Bluefruit will start advertising again");
+}
+
+void uart_rx_callback(uint16_t conn_handle) {
+  (void) conn_handle;
+
+  // Forward data from Mobile to our peripheral
+  char str[20+1] = { 0 };
+  bleuart.read(str, 20);
+
+  Serial.print("[Prph] RX: ");
+  Serial.println(str);
+}
+
+float calculate_bluetooth_speed(void) {
+  return clientSandC.getSandC()->calculate();
+}
+
 void setup_bluetooth(void) {
-  Bluefruit.begin(0, 1);
+  Bluefruit.begin(1, 1);
+  Bluefruit.setTxPower(8);
   Bluefruit.setName(BT_NAME);
-  clientSandC.begin();
-  clientPower.begin();
 
-  Bluefruit.setConnLedInterval(250);
+  // Configure and Start Device Information Service
+  // bledis.setManufacturer("Adafruit Industries");
+  // bledis.setModel("Bluefruit Feather52");
+  // bledis.begin();
 
+  // Set Connect / Disconnect Callbacks
+  Bluefruit.Periph.setConnectCallback(uart_connect_callback);
+  Bluefruit.Periph.setDisconnectCallback(uart_disconnect_callback);
   Bluefruit.Central.setConnectCallback(connect_callback);
   Bluefruit.Central.setDisconnectCallback(disconnect_callback);
+
+  // Configure and Start BLE Uart Service
+  bleuart.begin();
+  bleuart.setRxCallback(uart_rx_callback);
+
+  Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
+  Bluefruit.Advertising.addTxPower();
+  Bluefruit.Advertising.addService(bleuart);
+  Bluefruit.ScanResponse.addName();
+  Bluefruit.Advertising.restartOnDisconnect(true);
+  Bluefruit.Advertising.setInterval(32, 244);    // in unit of 0.625 ms
+  Bluefruit.Advertising.setFastTimeout(30);      // number of seconds in fast mode
+  Bluefruit.Advertising.start(0);                // 0 = Don't stop advertising after n seconds
 
   Bluefruit.Scanner.setRxCallback(scan_callback);
   Bluefruit.Scanner.restartOnDisconnect(true);
   Bluefruit.Scanner.setInterval(160, 80);  // in unit of 0.625 ms
   Bluefruit.Scanner.useActiveScan(false);
   Bluefruit.Scanner.start(0);
-}
 
-float calculate_bluetooth_speed(void) {
-  return clientSandC.getSandC()->calculate();
+  clientSandC.begin();
+  clientPower.begin();
+
+  Bluefruit.setConnLedInterval(250);
 }

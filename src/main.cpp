@@ -25,7 +25,6 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 #include "inttimer.h"
-#include "wifi.h"
 #include "bluetooth.h"
 #include "secrets.h"
 #include "indicator.h"
@@ -150,10 +149,6 @@ void setup() {
   timer1.init(100);
   timer1.start();
 
-  // Setup WiFi
-  // wifi_setup();
-  // wifi_connect(WIFI_SSID, WIFI_PASSWORD);
-
   indicator.setPixelColor(0, INDICATOR_OK);
   indicator.show();
 
@@ -170,8 +165,6 @@ void setup() {
 unsigned long last_loop_millis = 0;
 
 void loop() {
-  // wifi_loop();
-
   if ((millis() - last_loop_millis) > 5000) {
     Serial.print("Mains Frequency = ");
     Serial.println(calc_mains_freq());

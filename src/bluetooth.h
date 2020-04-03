@@ -25,7 +25,7 @@
 #ifndef SRC_BLUETOOTH_H_
 #define SRC_BLUETOOTH_H_
 
-#define BT_NAME         "FAN_CONTROLLER"
+#define BT_NAME         "FAN CONTROLLER"
 
 void setup_bluetooth(void);
 float calculate_bluetooth_speed(void);
