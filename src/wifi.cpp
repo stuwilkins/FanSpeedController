@@ -26,6 +26,8 @@
 #include <WiFiNINA.h>
 #include "wifi.h"
 
+WiFiServer server(80);
+
 void printMacAddress(byte mac[]) {
   for (int i = 5; i >= 0; i--) {
     if (mac[i] < 16) {
@@ -76,7 +78,7 @@ void printCurrentNet() {
   Serial.println();
 }
 
-void setup_wifi(void) {
+void wifi_setup(void) {
   WiFi.setPins(SPIWIFI_SS, SPIWIFI_ACK, ESP32_RESETN, ESP32_GPIO0, &SPIWIFI);
   if (WiFi.status() == WL_NO_MODULE) {
     Serial.println("Communication with WiFi module failed!");
@@ -87,7 +89,60 @@ void setup_wifi(void) {
   Serial.println(WiFi.firmwareVersion());
 }
 
-void connect_to_wifi(char *ssid, char *pass) {
+void wifi_loop() {
+
+  WiFiClient client = server.available();
+  if (client) {
+    // an http request ends with a blank line
+    boolean currentLineIsBlank = true;
+    while (client.connected()) {
+      Serial.println("Connected");
+      if (client.available()) {
+        char c = client.read();
+        Serial.write(c);
+        // if you've gotten to the end of the line (received a newline
+        // character) and the line is blank, the http request has ended,
+        // so you can send a reply
+        if (c == '\n' && currentLineIsBlank) {
+          // send a standard http response header
+          client.println("HTTP/1.1 200 OK");
+          client.println("Content-Type: text/html");
+          client.println("Connection: close");  // the connection will be closed after completion of the response
+          client.println("Refresh: 5");  // refresh the page automatically every 5 sec
+          client.println();
+          client.println("<!DOCTYPE HTML>");
+          client.println("<html>");
+          // output the value of each analog input pin
+          for (int analogChannel = 0; analogChannel < 6; analogChannel++) {
+            int sensorReading = analogRead(analogChannel);
+            client.print("analog input ");
+            client.print(analogChannel);
+            client.print(" is ");
+            client.print(sensorReading);
+            client.println("<br />");
+          }
+          client.println("</html>");
+           break;
+        }
+        if (c == '\n') {
+          // you're starting a new line
+          currentLineIsBlank = true;
+        }
+        else if (c != '\r') {
+          // you've gotten a character on the current line
+          currentLineIsBlank = false;
+        }
+      }
+    }
+    // give the web browser time to receive the data
+    delay(1);
+
+    // close the connection:
+    client.stop();
+  }
+}
+
+void wifi_connect(const char *ssid, const char *pass) {
   int status = WL_IDLE_STATUS;
 
   while (status != WL_CONNECTED) {
@@ -104,4 +159,7 @@ void connect_to_wifi(char *ssid, char *pass) {
   Serial.print("You're connected to the network");
   printCurrentNet();
   printWifiData();
+
+  Serial.println("Starting server");
+  server.begin();
 }

@@ -27,12 +27,13 @@
 #include "inttimer.h"
 #include "wifi.h"
 #include "bluetooth.h"
+#include "secrets.h"
+#include "indicator.h"
 
 #define PIN_MAINS_CLOCK       6
 #define PIN_FAN_1             5
 #define PIN_FAN_2             9
-#define SERIAL_TIMEOUT        15000
-
+#define SERIAL_TIMEOUT        10000
 
 //
 // User Interface
@@ -47,9 +48,7 @@ Adafruit_NeoPixel indicator(1, PIN_NEOPIXEL, NEO_GRB);
 // ISR / Timer
 //
 
-// TimerHandle_t softtimer;
 TimerClass timer1(4);
-// TimerClass timer2(4, 0);
 
 volatile int zero_cross_clock = 0;
 unsigned long zero_cross_last_clock = 0;
@@ -59,12 +58,19 @@ volatile long int zero_cross_micros = 0;
 unsigned long fan1_delay = 0;
 unsigned long fan2_delay = 0;
 unsigned long hardtimer_count = 0;
+unsigned long zero_cross_pulse = 0;
+unsigned long zero_cross_negative = 0;
 
 void zero_crossing_isr(void) {
-  zero_cross_clock++;
-  zero_cross_trigger_1 = true;
-  zero_cross_trigger_2 = true;
-  zero_cross_micros = micros();
+  if (!digitalRead(PIN_MAINS_CLOCK)) {
+    zero_cross_clock++;
+    zero_cross_trigger_1 = true;
+    zero_cross_trigger_2 = true;
+    zero_cross_micros = micros();
+    zero_cross_pulse = micros() - zero_cross_negative;
+  } else {
+    zero_cross_negative = micros();
+  }
 }
 
 void hardtimer_callback(void) {
@@ -81,12 +87,14 @@ void hardtimer_callback(void) {
     zero_cross_trigger_1 = false;
   }
 
-  if (zero_cross_trigger_2) {
-    if ((micros() - zero_cross_micros) > fan2_delay) {
-      digitalWrite(PIN_FAN_2, HIGH);
-      delayMicroseconds(50);
-      digitalWrite(PIN_FAN_2, LOW);
-      zero_cross_trigger_2 = false;
+  if (fan2_delay > 0) {
+    if (zero_cross_trigger_2) {
+      if ((micros() - zero_cross_micros) > fan2_delay) {
+        digitalWrite(PIN_FAN_2, HIGH);
+        delayMicroseconds(50);
+        digitalWrite(PIN_FAN_2, LOW);
+        zero_cross_trigger_2 = false;
+      }
     }
   }
 
@@ -139,59 +147,55 @@ void setup() {
   // Setup timer
 
   timer1.setCallback(hardtimer_callback);
-  timer1.init(5);
+  timer1.init(100);
   timer1.start();
-  digitalWrite(LED_BUILTIN, LOW);
-
-  // Setup Bluetooth
-  setup_bluetooth();
 
   // Setup WiFi
-  setup_wifi();
+  // wifi_setup();
+  // wifi_connect(WIFI_SSID, WIFI_PASSWORD);
 
   indicator.setPixelColor(0, INDICATOR_OK);
   indicator.show();
 
   fan1_delay = 0;
-  fan2_delay = 1;
+  fan2_delay = 0;
+
+  // Setup Bluetooth
+  setup_bluetooth();
 
   attachInterrupt(digitalPinToInterrupt(PIN_MAINS_CLOCK),
-    zero_crossing_isr, FALLING);
+    zero_crossing_isr, CHANGE);
 }
 
+unsigned long last_loop_millis = 0;
+
 void loop() {
-  Serial.print("Mains Frequency = ");
-  Serial.println(calc_mains_freq());
-  delay(250);
-  Serial.print("Fan 1 period = ");
-  Serial.println(fan1_delay);
-  delay(250);
-  Serial.print("Fan 2 period = ");
-  Serial.println(fan2_delay);
-  delay(250);
-  Serial.print("Hardtimer count = ");
-  Serial.println(hardtimer_count);
-  delay(250);
-  calculate_bluetooth();
-  // if ( Bluefruit.Central.connected() )
-  // {
-  //   // Not discovered yet
-  //   if ( clientSandC.discovered() )
-  //   {
-  //     // Discovered means in working state
-  //     // Get Serial input and send to Peripheral
-  //     //if ( Serial.available() )
-  //     //{
-  //     //  delay(2); // delay a bit for all characters to arrive
+  // wifi_loop();
 
-  //     //  char str[20+1] = { 0 };
-  //     //  Serial.readBytes(str, 20);
+  if ((millis() - last_loop_millis) > 5000) {
+    Serial.print("Mains Frequency = ");
+    Serial.println(calc_mains_freq());
+    Serial.print("Fan 1 period = ");
+    Serial.println(fan1_delay);
+    Serial.print("Fan 2 period = ");
+    Serial.println(fan2_delay);
+    Serial.print("Hardtimer count = ");
+    Serial.println(hardtimer_count);
+    Serial.print("Zero Cross Negative = ");
+    Serial.println(zero_cross_pulse);
 
-  //     //  clientUart.print( str );
-  //     //}
-  //   }
-  // }
-  // // put your main code here, to run repeatedly:
+    float speed = calculate_bluetooth_speed();
+    Serial.print("Speed = ");
+    Serial.println(speed);
 
-  delay(2000);
+    if (speed > 5) {
+      fan1_delay = 1;
+      fan2_delay = 1;
+    } else {
+      fan1_delay = 0;
+      fan2_delay = 0;
+    }
+
+    last_loop_millis = millis();
+  }
 }

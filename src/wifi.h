@@ -31,6 +31,8 @@
 #define SPIWIFI_ACK   11   // a.k.a BUSY or READY pin
 #define ESP32_GPIO0   -1
 
-void setup_wifi(void);
+void wifi_loop(void);
+void wifi_setup(void);
+void wifi_connect(const char *ssid, const char *pass);
 
 #endif  // SRC_WIFI_H_

@@ -39,7 +39,7 @@ TimerClass::TimerClass(int timer) {
 }
 
 void TimerClass::setNVIC(IRQn_Type IRQn) {
-    NVIC_SetPriority(IRQn, 3);
+    NVIC_SetPriority(IRQn, 5);
     NVIC_ClearPendingIRQ(IRQn);
     NVIC_EnableIRQ(IRQn);
 }

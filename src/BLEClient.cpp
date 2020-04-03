@@ -23,11 +23,79 @@
 //
 
 #include "bluefruit.h"
-#include "BLEClientSandC.h"
+#include "BLEClient.h"
+
+BLEClientCharacteristicPower::BLEClientCharacteristicPower(void)
+    : BLEClientCharacteristic(UUID16_CHR_CYCLING_POWER_MEASUREMENT) {
+}
+
+int BLEClientCharacteristicPower::process(uint8_t *data, uint16_t len) {
+    // Serial.print("Power Data = ");
+    // Serial.printBuffer(data, len, ':');
+    // Serial.println();
+
+    uint16_t flags = data[0];
+    flags |= data[1] << 8;
+
+    Serial.printf("Power flags = 0x%X\n", flags);
+
+    _inst_power = data[2];
+    _inst_power |= data[3] << 8;
+
+    Serial.printf("Power = %d W\n", _inst_power);
+    return 0;
+}
+
+BLEClientPower::BLEClientPower(void)
+  : BLEClientService(UUID16_SVC_CYCLING_POWER) {
+}
+
+bool BLEClientPower::begin(void) {
+  // Setup callback for measurement
+  _power.setNotifyCallback(this->_callback, true);
+
+  // Invoke base class begin()
+  BLEClientService::begin();
+
+  _power.begin(this);
+
+  return true;
+}
+
+bool BLEClientPower::discover(uint16_t conn_handle) {
+  // Call BLECentralService discover
+  VERIFY(BLEClientService::discover(conn_handle));
+  _conn_hdl = BLE_CONN_HANDLE_INVALID;  // make as invalid
+
+  // Discover TXD, RXD characteristics
+  VERIFY(1 == Bluefruit.Discovery.discoverCharacteristic(
+      conn_handle, _power));
+
+  _conn_hdl = conn_handle;
+  return true;
+}
+
+uint8_t BLEClientPower::read(void) {
+  return _power.read8();
+}
+
+bool BLEClientPower::enableNotify(void) {
+  return _power.enableNotify();
+}
+
+bool BLEClientPower::disableNotify(void) {
+  return _power.disableNotify();
+}
+
+void BLEClientPower::_callback(BLEClientCharacteristic* chr,
+  uint8_t* data, uint16_t len) {
+    reinterpret_cast<BLEClientCharacteristicPower*>(chr)->process(data, len);
+}
 
 BLEClientCharacteristicSandC::BLEClientCharacteristicSandC(void)
     : BLEClientCharacteristic(UUID16_CHR_CSC_MEASUREMENT) {
     _valid = 0;
+    _wheel_circ = 67;
 
     _wheel_revs = 0;
     _wheel_event_time = 0;
@@ -43,26 +111,25 @@ BLEClientCharacteristicSandC::BLEClientCharacteristicSandC(void)
     _crank_speed = 0;
 }
 
-int BLEClientCharacteristicSandC::calculate(void) {
+float BLEClientCharacteristicSandC::calculate(void) {
   // This routine calculates the speed based
-  uint32_t _revs = _last_wheel_revs - _wheel_revs;
-  uint16_t _time = _last_wheel_event_time - _wheel_event_time;
+  uint32_t _revs = _wheel_revs - _last_wheel_revs;
+  uint16_t _time = _wheel_event_time - _last_wheel_event_time;
 
   _last_wheel_revs = _wheel_revs;
   _last_wheel_event_time = _wheel_event_time;
 
   if (_time != 0) {
     // Check if we can calculate
-    _wheel_speed = static_cast<float>(_revs) / static_cast<float>(_time);
-    _wheel_speed *= 2096;  // Wheel circumference
-    _wheel_speed /= 1024;  // Convert to seconds
+    _wheel_speed = static_cast<float>(_revs)  * _wheel_circ;
+    _wheel_speed /= static_cast<float>(_time) / 1024;
     _wheel_speed *= 0.00223694;  // mm.s^-1 to mph
   } else {
-    _wheel_speed = 0;
+    return 0.0;
   }
 
   Serial.printf("Wheel speed = %f\n", _wheel_speed);
-  return 0;
+  return _wheel_speed;
 }
 
 int BLEClientCharacteristicSandC::process(uint8_t *data, uint16_t len) {

@@ -23,35 +23,69 @@
 //
 
 #include <bluefruit.h>
-#include "BLEClientSandC.h"
+#include "BLEClient.h"
 #include "bluetooth.h"
 
 BLEClientSandC  clientSandC;
+BLEClientPower  clientPower;
 
 void scan_callback(ble_gap_evt_adv_report_t* report) {
+  // Serial.print("Found device with MAC ");
+  // Serial.printBufferReverse(report->peer_addr.addr, 6, ':');
+  // Serial.println();
+  // Serial.printf("Signal %14s %d dBm\n", "RSSI", report->rssi);
+
   if ( Bluefruit.Scanner.checkReportForService(report, clientSandC) ) {
-    Serial.print("Found device with MAC ");
-    Serial.printBufferReverse(report->peer_addr.addr, 6, ':');
-    Serial.println();
-    Serial.printf("Signal %14s %d dBm\n", "RSSI", report->rssi);
-    Bluefruit.Central.connect(report);
+    uint8_t mac[] = {0x99, 0xE8, 0x2C, 0xFB, 0x62, 0xFC};
 
-    // Add check here if MAC is correct
-
-  } else {
-    Bluefruit.Scanner.resume();
+    if (!memcmp(report->peer_addr.addr, mac, 6)) {
+      Serial.println("Connecting to speed and cadence sensor");
+      Serial.printf("Signal %14s %d dBm\n", "RSSI", report->rssi);
+      Bluefruit.Central.connect(report);
+      Bluefruit.Scanner.stop();
+      return;
+    } else {
+      Serial.println("Skipping speed and cadence sensor, MAC does not match.");
+    }
   }
+
+  if ( Bluefruit.Scanner.checkReportForService(report, clientPower) ) {
+    uint8_t mac[] = {0x99, 0xE8, 0x2C, 0xFB, 0x62, 0xFC};
+
+    if (!memcmp(report->peer_addr.addr, mac, 6)) {
+      Serial.println("Connecting to power sensor");
+      Serial.printf("Signal %14s %d dBm\n", "RSSI", report->rssi);
+      Bluefruit.Central.connect(report);
+      Bluefruit.Scanner.stop();
+      return;
+    } else {
+      Serial.println("Skipping power sensor, MAC does not match.");
+    }
+  }
+
+  Bluefruit.Scanner.resume();
 }
 
 void connect_callback(uint16_t conn_handle) {
   if ( !clientSandC.discover(conn_handle) ) {
     Bluefruit.disconnect(conn_handle);
-    Serial.println("Unable to discover device.");
+    Serial.println("Unable to discover SandC device.");
     return;
   }
 
   if ( !clientSandC.enableNotify() ) {
-    Serial.println("Couldn't enable notify for SandC Measurement.");
+    Serial.println("Couldn't enable notify for SandC measurement.");
+    return;
+  }
+
+  if ( !clientPower.discover(conn_handle) ) {
+    Bluefruit.disconnect(conn_handle);
+    Serial.println("Unable to discover power device.");
+    return;
+  }
+
+  if ( !clientPower.enableNotify() ) {
+    Serial.println("Couldn't enable notify for Power measurement.");
     return;
   }
 
@@ -72,6 +106,7 @@ void setup_bluetooth(void) {
   Bluefruit.begin(0, 1);
   Bluefruit.setName(BT_NAME);
   clientSandC.begin();
+  clientPower.begin();
 
   Bluefruit.setConnLedInterval(250);
 
@@ -85,6 +120,6 @@ void setup_bluetooth(void) {
   Bluefruit.Scanner.start(0);
 }
 
-void calculate_bluetooth(void) {
-  clientSandC.getSandC()->calculate();
+float calculate_bluetooth_speed(void) {
+  return clientSandC.getSandC()->calculate();
 }

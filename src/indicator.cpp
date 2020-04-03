@@ -21,13 +21,3 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-
-#ifndef SRC_BLUETOOTH_H_
-#define SRC_BLUETOOTH_H_
-
-#define BT_NAME         "FAN_CONTROLLER"
-
-void setup_bluetooth(void);
-float calculate_bluetooth_speed(void);
-
-#endif  // SRC_BLUETOOTH_H_

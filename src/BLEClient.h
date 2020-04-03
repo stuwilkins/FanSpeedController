@@ -22,8 +22,8 @@
 // SOFTWARE.
 //
 
-#ifndef SRC_BLECLIENTSANDC_H_
-#define SRC_BLECLIENTSANDC_H_
+#ifndef SRC_BLECLIENT_H_
+#define SRC_BLECLIENT_H_
 
 #include "bluefruit_common.h"
 #include "BLEClientCharacteristic.h"
@@ -32,11 +32,32 @@
 #define SANDC_SPEED         0x01
 #define SANDC_CADENCE       0x02
 
+class BLEClientCharacteristicPower : public BLEClientCharacteristic {
+ public:
+  BLEClientCharacteristicPower(void);
+  int process(uint8_t *data, uint16_t len);
+ private:
+  float _wheel_circ;
+  float _wheel_speed;
+  float _crank_speed;
+
+  int16_t _inst_power;
+
+  uint32_t _wheel_revs;
+  uint16_t _wheel_event_time;
+  uint16_t _crank_revs;
+  uint16_t _crank_event_time;
+  uint32_t _last_wheel_revs;
+  uint16_t _last_wheel_event_time;
+  uint16_t _last_crank_revs;
+  uint16_t _last_crank_event_time;
+};
+
 class BLEClientCharacteristicSandC : public BLEClientCharacteristic {
  public:
   BLEClientCharacteristicSandC(void);
   int process(uint8_t *data, uint16_t len);
-  int calculate(void);
+  float calculate(void);
 
  private:
   bool _valid;
@@ -55,15 +76,31 @@ class BLEClientCharacteristicSandC : public BLEClientCharacteristic {
   uint16_t _last_crank_event_time;
 };
 
+class BLEClientPower : public BLEClientService {
+ public:
+  BLEClientPower(void);
+
+  virtual bool begin(void);
+  virtual bool discover(uint16_t conn_handle);
+
+  uint8_t read(void);
+  bool enableNotify(void);
+  bool disableNotify(void);
+
+ private:
+  BLEClientCharacteristicPower _power;
+  static void _callback(BLEClientCharacteristic* chr,
+    uint8_t* data, uint16_t len);
+};
+
 class BLEClientSandC : public BLEClientService {
  public:
   BLEClientSandC(void);
 
-  virtual bool  begin(void);
-  virtual bool  discover(uint16_t conn_handle);
+  virtual bool begin(void);
+  virtual bool discover(uint16_t conn_handle);
 
   uint8_t read(void);
-
   bool enableNotify(void);
   bool disableNotify(void);
 
@@ -77,4 +114,4 @@ class BLEClientSandC : public BLEClientService {
     uint8_t* data, uint16_t len);
 };
 
-#endif  // SRC_BLECLIENTSANDC_H_
+#endif  // SRC_BLECLIENT_H_
