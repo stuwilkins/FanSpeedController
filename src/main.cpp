@@ -24,16 +24,13 @@
 
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
+#include "wiring.h"
 #include "debug.h"
+#include "triac.h"
 #include "inttimer.h"
 #include "bluetooth.h"
 #include "uart_cmd.h"
 #include "indicator.h"
-
-#define PIN_MAINS_CLOCK       6
-#define PIN_FAN_1             5
-#define PIN_FAN_2             9
-#define SERIAL_TIMEOUT        10000
 
 //
 // User Interface
