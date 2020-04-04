@@ -31,40 +31,61 @@ BLEUart bleuart;
 BLEClientSandC  clientSandC;
 BLEClientPower  clientPower;
 
+bool power_connected = false;
+bool sandc_connected = false;
+
+uint8_t bluetooth_mac_whitelist[][6] = {{0x99, 0xE8, 0x2C, 0xFB, 0x62, 0xFC},
+                                        {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
+
 static void defaultCallback(const char *cmd, const int cmd_len, void * ctx) {}
 bluetoothFuncPtr_t uart_usr_rx_callback = defaultCallback;
 void* uart_usr_rx_callback_ptr = NULL;
 
+bool check_mac_whitelist(uint8_t *mac) {
+  int i = 0;
+  uint8_t zero[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+  while (memcmp(bluetooth_mac_whitelist[i], zero, 6)) {
+    if (!memcmp(mac, bluetooth_mac_whitelist[i], 6)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void scan_callback(ble_gap_evt_adv_report_t* report) {
-  // Serial.print("Found device with MAC ");
-  // Serial.printBufferReverse(report->peer_addr.addr, 6, ':');
-  // Serial.printf(" Signal %14s %d dBm\n", "RSSI", report->rssi);
+  DEBUG_PRINT("Found device with MAC %02X:%02X:%02X:%02X:%02X:%02X"
+    " Signal = %d dBm\n",
+    report->peer_addr.addr[4], report->peer_addr.addr[5],
+    report->peer_addr.addr[2], report->peer_addr.addr[3],
+    report->peer_addr.addr[0], report->peer_addr.addr[1],
+    report->rssi);
 
   if ( Bluefruit.Scanner.checkReportForService(report, clientSandC) ) {
-    uint8_t mac[] = {0x99, 0xE8, 0x2C, 0xFB, 0x62, 0xFC};
-
-    if (!memcmp(report->peer_addr.addr, mac, 6)) {
+    if (check_mac_whitelist(report->peer_addr.addr)) {
       DEBUG_PRINT("Connecting to speed sensor. Signal %d dBm\n", report->rssi);
       Bluefruit.Central.connect(report);
-      Bluefruit.Scanner.stop();
-      return;
+      sandc_connected = true;
     } else {
       DEBUG_COMMENT("Skipping speed and cadence sensor, MAC does not match.\n");
     }
   }
 
   if ( Bluefruit.Scanner.checkReportForService(report, clientPower) ) {
-    uint8_t mac[] = {0x99, 0xE8, 0x2C, 0xFB, 0x62, 0xFC};
-
-    if (!memcmp(report->peer_addr.addr, mac, 6)) {
+    if (check_mac_whitelist(report->peer_addr.addr)) {
       DEBUG_PRINT("Connecting to power sensor. Signal %d dBm\n", report->rssi);
-      return;
+      Bluefruit.Central.connect(report);
+      power_connected = true;
     } else {
       DEBUG_COMMENT("Skipping power sensor, MAC does not match.\n");
     }
   }
 
-  Bluefruit.Scanner.resume();
+  if(power_connected && sandc_connected) {
+    Bluefruit.Scanner.stop();
+  } else {
+    Bluefruit.Scanner.resume();
+  }
 }
 
 void connect_callback(uint16_t conn_handle) {
@@ -95,6 +116,9 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   (void) conn_handle;
 
   DEBUG_PRINT("Disconnected, reason = 0x%02X\n", reason);
+
+  power_connected = false;
+  sandc_connected = false;
 }
 
 void uart_connect_callback(uint16_t conn_handle) {
