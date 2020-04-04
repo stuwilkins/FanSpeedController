@@ -32,6 +32,7 @@ BLEClientPower  clientPower;
 
 static void defaultCallback(const char *cmd, const int cmd_len, void * ctx) {}
 bluetoothFuncPtr_t uart_usr_rx_callback = defaultCallback;
+void* uart_usr_rx_callback_ptr = NULL;
 
 void scan_callback(ble_gap_evt_adv_report_t* report) {
   // Serial.print("Found device with MAC ");
@@ -128,13 +129,17 @@ void uart_rx_callback(uint16_t conn_handle) {
   Serial.println(str);
 
   // Now do callback
-  void *test = NULL;
   int str_len = 20;
-  (*uart_usr_rx_callback)(str, str_len, test);
+  (*uart_usr_rx_callback)(str, str_len, uart_usr_rx_callback_ptr);
 }
 
 float calculate_bluetooth_speed(void) {
   return clientSandC.getSandC()->calculate();
+}
+
+void bluetooth_set_rx_callback(bluetoothFuncPtr_t func, void* ctx) {
+  uart_usr_rx_callback = func;
+  uart_usr_rx_callback_ptr = ctx;
 }
 
 void bluetooth_setup(void) {

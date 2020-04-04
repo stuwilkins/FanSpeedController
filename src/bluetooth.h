@@ -31,6 +31,7 @@ typedef void (*bluetoothFuncPtr_t)(const char* cmd,
     const int cmd_len, void* ctx);
 
 void bluetooth_setup(void);
+void bluetooth_set_rx_callback(bluetoothFuncPtr_t func, void* ctx);
 float calculate_bluetooth_speed(void);
 
 #endif  // SRC_BLUETOOTH_H_

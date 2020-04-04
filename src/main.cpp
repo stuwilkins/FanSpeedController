@@ -24,6 +24,7 @@
 
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
+#include "debug.h"
 #include "inttimer.h"
 #include "bluetooth.h"
 #include "indicator.h"
@@ -117,6 +118,11 @@ float calc_mains_freq(void) {
   return _freq;
 }
 
+void bluetooth_rx_callback(const char* cmd, int cmd_len, void* ctx) {
+  DEBUG_PRINT("Recieved data [%s]\n", cmd);
+}
+
+
 void setup() {
   // Setup Input / Output
 
@@ -156,6 +162,7 @@ void setup() {
 
   // Setup Bluetooth
   bluetooth_setup();
+  bluetooth_set_rx_callback(bluetooth_rx_callback, NULL);
 
   attachInterrupt(digitalPinToInterrupt(PIN_MAINS_CLOCK),
     zero_crossing_isr, CHANGE);
@@ -165,20 +172,14 @@ unsigned long last_loop_millis = 0;
 
 void loop() {
   if ((millis() - last_loop_millis) > 5000) {
-    Serial.print("Mains Frequency = ");
-    Serial.println(calc_mains_freq());
-    Serial.print("Fan 1 period = ");
-    Serial.println(fan1_delay);
-    Serial.print("Fan 2 period = ");
-    Serial.println(fan2_delay);
-    Serial.print("Hardtimer count = ");
-    Serial.println(hardtimer_count);
-    Serial.print("Zero Cross Negative = ");
-    Serial.println(zero_cross_pulse);
+    DEBUG_PRINT("Mains Frequency       = %f\n", calc_mains_freq());
+    DEBUG_PRINT("Fan 1 delay           = %ld\n", fan1_delay);
+    DEBUG_PRINT("Fan 2 delay           = %ld\n", fan2_delay);
+    DEBUG_PRINT("Hardtimer count       = %ld\n", hardtimer_count);
+    DEBUG_PRINT("Zerocross pulse width = %ld\n", zero_cross_pulse);
 
     float speed = calculate_bluetooth_speed();
-    Serial.print("Speed = ");
-    Serial.println(speed);
+    DEBUG_PRINT("Speed                 = %f\n", speed);
 
     if (speed > 5) {
       fan1_delay = 1;
