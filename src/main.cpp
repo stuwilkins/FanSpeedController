@@ -36,10 +36,7 @@
 // User Interface
 //
 
-Adafruit_NeoPixel indicator(1, PIN_NEOPIXEL, NEO_GRB);
-#define INDICATOR_BOOT        indicator.Color(255, 255, 0)
-#define INDICATOR_OK          indicator.Color(0, 255, 0)
-#define INDICATOR_CONNECTED   indicator.Color(0, 0, 255)
+NeoPixelIndicator indicator;
 
 //
 // ISR / Timer
@@ -71,13 +68,7 @@ void setup() {
   digitalWrite(PIN_FAN_1,   LOW);
   digitalWrite(PIN_FAN_2,   LOW);
 
-  // Start, set indicator to RED
-
-  indicator_start();
   indicator.begin();
-  indicator.setBrightness(10);
-  indicator.setPixelColor(0, INDICATOR_BOOT);
-  indicator.show();
 
   // Setup Serial Monitor
 
@@ -91,9 +82,6 @@ void setup() {
 
   DEBUG_COMMENT("Setting up hardware timer.\n");
   triac_setup();
-
-  indicator.setPixelColor(0, INDICATOR_OK);
-  indicator.show();
 
   fan1_delay = 0;
   fan2_delay = 0;

@@ -23,12 +23,26 @@
 //
 
 #include <Arduino.h>
+#include <Adafruit_NeoPixel.h>
 #include "inttimer.h"
 #include "indicator.h"
 
-TimerClass indicator_inttimer(3);
+NeoPixelIndicator::NeoPixelIndicator(void) {
+  neopixel = new Adafruit_NeoPixel(1, PIN_NEOPIXEL, NEO_GRB);
+  timer = new TimerClass(3);
 
-void indicator_start(void) {
-  indicator_inttimer.init(250000);
-  indicator_inttimer.start();
+  timer->init(250000);
+  timer->start();
+}
+
+void NeoPixelIndicator::begin(void) {
+  neopixel->begin();
+  neopixel->setBrightness(10);
+  neopixel->setPixelColor(0, 0xFF0000);
+  neopixel->show();
+}
+
+NeoPixelIndicator::~NeoPixelIndicator(void) {
+  delete neopixel;
+  delete timer;
 }

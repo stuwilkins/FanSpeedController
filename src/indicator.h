@@ -25,6 +25,17 @@
 #ifndef SRC_INDICATOR_H_
 #define SRC_INDICATOR_H_
 
-void indicator_start(void);
+#include <Adafruit_NeoPixel.h>
+#include "inttimer.h"
+
+class NeoPixelIndicator {
+ public:
+  NeoPixelIndicator(void);
+  ~NeoPixelIndicator(void);
+  void begin(void);
+ private:
+  TimerClass *timer;
+  Adafruit_NeoPixel *neopixel;
+};
 
 #endif  // SRC_INDICATOR_H_
