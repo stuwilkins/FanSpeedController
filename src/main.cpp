@@ -148,8 +148,10 @@ void setup() {
   while (!Serial && ((millis() - _start < SERIAL_TIMEOUT))) {
     delay(10);   // for nrf52840 with native usb
   }
+  DEBUG_COMMENT("Started FanSpeedController.\n");
   // Setup timer
 
+  DEBUG_COMMENT("Setting up hardware timer.\n");
   timer1.setCallback(hardtimer_callback);
   timer1.init(5);
   timer1.start();
@@ -161,11 +163,14 @@ void setup() {
   fan2_delay = 0;
 
   // Setup Bluetooth
+  DEBUG_COMMENT("Setting up bluetooth.\n");
   bluetooth_setup();
   bluetooth_set_rx_callback(bluetooth_rx_callback, NULL);
 
   attachInterrupt(digitalPinToInterrupt(PIN_MAINS_CLOCK),
     zero_crossing_isr, CHANGE);
+
+  DEBUG_COMMENT("Finished setup.\n");
 }
 
 unsigned long last_loop_millis = 0;

@@ -24,6 +24,7 @@
 
 #include <bluefruit.h>
 #include "BLEClient.h"
+#include "debug.h"
 #include "bluetooth.h"
 
 BLEUart bleuart;
@@ -43,13 +44,12 @@ void scan_callback(ble_gap_evt_adv_report_t* report) {
     uint8_t mac[] = {0x99, 0xE8, 0x2C, 0xFB, 0x62, 0xFC};
 
     if (!memcmp(report->peer_addr.addr, mac, 6)) {
-      Serial.println("Connecting to speed and cadence sensor");
-      Serial.printf("Signal %14s %d dBm\n", "RSSI", report->rssi);
+      DEBUG_PRINT("Connecting to speed sensor. Signal %d dBm\n", report->rssi);
       Bluefruit.Central.connect(report);
       Bluefruit.Scanner.stop();
       return;
     } else {
-      Serial.println("Skipping speed and cadence sensor, MAC does not match.");
+      DEBUG_COMMENT("Skipping speed and cadence sensor, MAC does not match.\n");
     }
   }
 
@@ -57,13 +57,10 @@ void scan_callback(ble_gap_evt_adv_report_t* report) {
     uint8_t mac[] = {0x99, 0xE8, 0x2C, 0xFB, 0x62, 0xFC};
 
     if (!memcmp(report->peer_addr.addr, mac, 6)) {
-      Serial.println("Connecting to power sensor");
-      Serial.printf("Signal %14s %d dBm\n", "RSSI", report->rssi);
-      Bluefruit.Central.connect(report);
-      Bluefruit.Scanner.stop();
+      DEBUG_PRINT("Connecting to power sensor. Signal %d dBm\n", report->rssi);
       return;
     } else {
-      Serial.println("Skipping power sensor, MAC does not match.");
+      DEBUG_COMMENT("Skipping power sensor, MAC does not match.\n");
     }
   }
 
@@ -73,49 +70,43 @@ void scan_callback(ble_gap_evt_adv_report_t* report) {
 void connect_callback(uint16_t conn_handle) {
   if ( !clientSandC.discover(conn_handle) ) {
     Bluefruit.disconnect(conn_handle);
-    Serial.println("Unable to discover SandC device.");
+    DEBUG_COMMENT("Unable to discover SandC device.\n");
     return;
   }
 
   if ( !clientSandC.enableNotify() ) {
-    Serial.println("Couldn't enable notify for SandC measurement.");
+    DEBUG_COMMENT("Couldn't enable notify for SandC measurement.\n");
     return;
   }
 
   if ( !clientPower.discover(conn_handle) ) {
     Bluefruit.disconnect(conn_handle);
-    Serial.println("Unable to discover power device.");
+    DEBUG_COMMENT("Unable to discover power device.\n");
     return;
   }
 
   if ( !clientPower.enableNotify() ) {
-    Serial.println("Couldn't enable notify for Power measurement.");
+    DEBUG_COMMENT("Couldn't enable notify for Power measurement.\n");
     return;
   }
-
-  // indicator.setPixelColor(0, INDICATOR_CONNECTED);
-  // indicator.show();
 }
 
 void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   (void) conn_handle;
 
-  Serial.print("Disconnected, reason = 0x");
-  Serial.println(reason, HEX);
-  // indicator.setPixelColor(0, INDICATOR_OK);
-  // indicator.show();
+  DEBUG_PRINT("Disconnected, reason = 0x%02X\n", reason);
 }
 
 void uart_connect_callback(uint16_t conn_handle) {
   (void) conn_handle;
-  Serial.println("UART Connected");
+  DEBUG_COMMENT("Device connected to UART\n");
 }
 
 void uart_disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   (void) reason;
   (void) conn_handle;
 
-  Serial.println("UART Disconnected");
+  DEBUG_COMMENT("UART Disconnected\n");
 }
 
 void uart_rx_callback(uint16_t conn_handle) {
@@ -125,8 +116,7 @@ void uart_rx_callback(uint16_t conn_handle) {
   char str[20+1] = { 0 };
   bleuart.read(str, 20);
 
-  Serial.print("[Prph] RX: ");
-  Serial.println(str);
+  DEBUG_PRINT("Recieved : %s\n", str);
 
   // Now do callback
   int str_len = 20;
