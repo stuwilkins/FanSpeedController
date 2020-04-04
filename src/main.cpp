@@ -27,6 +27,7 @@
 #include "debug.h"
 #include "inttimer.h"
 #include "bluetooth.h"
+#include "uart_cmd.h"
 #include "indicator.h"
 
 #define PIN_MAINS_CLOCK       6
@@ -120,6 +121,17 @@ float calc_mains_freq(void) {
 
 void bluetooth_rx_callback(const char* cmd, int cmd_len, void* ctx) {
   DEBUG_PRINT("Recieved data [%s]\n", cmd);
+  if (!strncmp(CMD_FAN1_ON, cmd, cmd_len)) {
+    fan1_delay = 1;
+  } else if (!strncmp(CMD_FAN1_OFF, cmd, cmd_len)) {
+    fan1_delay = 0;
+  } else if (!strncmp(CMD_FAN2_ON, cmd, cmd_len)) {
+    fan2_delay = 1;
+  } else if (!strncmp(CMD_FAN2_OFF, cmd, cmd_len)) {
+    fan2_delay = 0;
+  } else {
+    DEBUG_COMMENT("Unknown command\n");
+  }
 }
 
 
