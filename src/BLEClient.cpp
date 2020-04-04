@@ -23,6 +23,7 @@
 //
 
 #include "bluefruit.h"
+#include "debug.h"
 #include "BLEClient.h"
 
 BLEClientCharacteristicPower::BLEClientCharacteristicPower(void)
@@ -30,19 +31,14 @@ BLEClientCharacteristicPower::BLEClientCharacteristicPower(void)
 }
 
 int BLEClientCharacteristicPower::process(uint8_t *data, uint16_t len) {
-    // Serial.print("Power Data = ");
-    // Serial.printBuffer(data, len, ':');
-    // Serial.println();
-
     uint16_t flags = data[0];
     flags |= data[1] << 8;
 
-    Serial.printf("Power flags = 0x%X\n", flags);
 
     _inst_power = data[2];
     _inst_power |= data[3] << 8;
 
-    Serial.printf("Power = %d W\n", _inst_power);
+    DEBUG_PRINT("Power flags = 0x%X : Power = %d W\n", flags, _inst_power);
     return 0;
 }
 
@@ -128,17 +124,12 @@ float BLEClientCharacteristicSandC::calculate(void) {
     return 0.0;
   }
 
-  Serial.printf("Wheel speed = %f\n", _wheel_speed);
+  DEBUG_PRINT("Wheel speed = %f\n", _wheel_speed);
   return _wheel_speed;
 }
 
 int BLEClientCharacteristicSandC::process(uint8_t *data, uint16_t len) {
     // First set the valid flag to zero
-
-    // Serial.print("Data = ");
-    // Serial.printBuffer(data, len, ':');
-    // Serial.println();
-
     _valid = 0;
 
     if (len < 1) {
@@ -180,16 +171,15 @@ int BLEClientCharacteristicSandC::process(uint8_t *data, uint16_t len) {
         _crank_event_time |= data[doff++];
     }
 
-    // Print some debug
-    // if (flags & SANDC_SPEED) {
-    //     Serial.printf("Speed : revs %d : event_time %d\n",
-    //       _wheel_revs, _wheel_event_time);
-    // }
+    if (flags & SANDC_SPEED) {
+        DEBUG_PRINT("Speed : revs %d : event_time %d\n",
+          _wheel_revs, _wheel_event_time);
+    }
 
-    // if (flags & SANDC_CADENCE) {
-    //     Serial.printf("Cadence : revs %d : event_time %d\n",
-    //       _crank_revs, _crank_event_time);
-    // }
+    if (flags & SANDC_CADENCE) {
+        DEBUG_PRINT("Cadence : revs %d : event_time %d\n",
+          _crank_revs, _crank_event_time);
+    }
 
     _valid = flags;
     return 0;
@@ -238,6 +228,5 @@ bool BLEClientSandC::disableNotify(void) {
 
 void BLEClientSandC::_callback(BLEClientCharacteristic* chr,
   uint8_t* data, uint16_t len) {
-    // ((BLEClientCharacteristicSandC*)chr)->process(data, len);
     reinterpret_cast<BLEClientCharacteristicSandC*>(chr)->process(data, len);
 }
