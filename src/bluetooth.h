@@ -27,7 +27,10 @@
 
 #define BT_NAME         "FAN CONTROLLER"
 
-void setup_bluetooth(void);
+typedef void (*bluetoothFuncPtr_t)(const char* cmd,
+    const int cmd_len, void* ctx);
+
+void bluetooth_setup(void);
 float calculate_bluetooth_speed(void);
 
 #endif  // SRC_BLUETOOTH_H_

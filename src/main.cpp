@@ -26,7 +26,6 @@
 #include <Adafruit_NeoPixel.h>
 #include "inttimer.h"
 #include "bluetooth.h"
-#include "secrets.h"
 #include "indicator.h"
 
 #define PIN_MAINS_CLOCK       6
@@ -146,7 +145,7 @@ void setup() {
   // Setup timer
 
   timer1.setCallback(hardtimer_callback);
-  timer1.init(100);
+  timer1.init(5);
   timer1.start();
 
   indicator.setPixelColor(0, INDICATOR_OK);
@@ -156,7 +155,7 @@ void setup() {
   fan2_delay = 0;
 
   // Setup Bluetooth
-  setup_bluetooth();
+  bluetooth_setup();
 
   attachInterrupt(digitalPinToInterrupt(PIN_MAINS_CLOCK),
     zero_crossing_isr, CHANGE);
