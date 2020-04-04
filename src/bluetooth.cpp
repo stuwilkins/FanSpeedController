@@ -81,7 +81,7 @@ void scan_callback(ble_gap_evt_adv_report_t* report) {
     }
   }
 
-  if(power_connected && sandc_connected) {
+  if (power_connected && sandc_connected) {
     Bluefruit.Scanner.stop();
   } else {
     Bluefruit.Scanner.resume();
