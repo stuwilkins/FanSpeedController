@@ -25,5 +25,6 @@
 #ifndef SRC_INDICATOR_H_
 #define SRC_INDICATOR_H_
 
+void indicator_start(void);
 
 #endif  // SRC_INDICATOR_H_

@@ -45,77 +45,6 @@ Adafruit_NeoPixel indicator(1, PIN_NEOPIXEL, NEO_GRB);
 // ISR / Timer
 //
 
-TimerClass timer1(4);
-
-volatile int zero_cross_clock = 0;
-unsigned long zero_cross_last_clock = 0;
-volatile bool zero_cross_trigger_1 = false;
-volatile bool zero_cross_trigger_2 = false;
-volatile long int zero_cross_micros = 0;
-unsigned long fan1_delay = 0;
-unsigned long fan2_delay = 0;
-unsigned long hardtimer_count = 0;
-unsigned long zero_cross_pulse = 0;
-unsigned long zero_cross_negative = 0;
-
-void zero_crossing_isr(void) {
-  if (!digitalRead(PIN_MAINS_CLOCK)) {
-    zero_cross_clock++;
-    zero_cross_trigger_1 = true;
-    zero_cross_trigger_2 = true;
-    zero_cross_micros = micros();
-    zero_cross_pulse = micros() - zero_cross_negative;
-  } else {
-    zero_cross_negative = micros();
-  }
-}
-
-void hardtimer_callback(void) {
-  if (fan1_delay > 0) {
-    if (zero_cross_trigger_1) {
-      if ((micros() - zero_cross_micros) > fan1_delay) {
-        digitalWrite(PIN_FAN_1, HIGH);
-        delayMicroseconds(50);
-        digitalWrite(PIN_FAN_1, LOW);
-        zero_cross_trigger_1 = false;
-      }
-    }
-  } else {
-    zero_cross_trigger_1 = false;
-  }
-
-  if (fan2_delay > 0) {
-    if (zero_cross_trigger_2) {
-      if ((micros() - zero_cross_micros) > fan2_delay) {
-        digitalWrite(PIN_FAN_2, HIGH);
-        delayMicroseconds(50);
-        digitalWrite(PIN_FAN_2, LOW);
-        zero_cross_trigger_2 = false;
-      }
-    }
-  }
-
-  hardtimer_count++;
-}
-
-float calc_mains_freq(void) {
-  float _freq = zero_cross_clock;
-  float _diff = (static_cast<float>(millis())
-    - static_cast<float>(zero_cross_last_clock));
-  if (_diff == 0) {
-    return 0;
-  }
-
-  // Catch divide by zero
-  _freq /= _diff;
-  _freq *= 500;  // Convert to seconds (and 2 per cycle)
-
-  zero_cross_last_clock = millis();
-  zero_cross_clock = 0;
-
-  return _freq;
-}
-
 void bluetooth_rx_callback(const char* cmd, int cmd_len, void* ctx) {
   DEBUG_PRINT("Recieved data [%s]\n", cmd);
   if (!strncmp(CMD_FAN1_ON, cmd, cmd_len)) {
@@ -131,7 +60,6 @@ void bluetooth_rx_callback(const char* cmd, int cmd_len, void* ctx) {
   }
 }
 
-
 void setup() {
   // Setup Input / Output
 
@@ -145,6 +73,7 @@ void setup() {
 
   // Start, set indicator to RED
 
+  indicator_start();
   indicator.begin();
   indicator.setBrightness(10);
   indicator.setPixelColor(0, INDICATOR_BOOT);
@@ -161,9 +90,7 @@ void setup() {
   // Setup timer
 
   DEBUG_COMMENT("Setting up hardware timer.\n");
-  timer1.setCallback(hardtimer_callback);
-  timer1.init(5);
-  timer1.start();
+  triac_setup();
 
   indicator.setPixelColor(0, INDICATOR_OK);
   indicator.show();

@@ -22,4 +22,13 @@
 // SOFTWARE.
 //
 
+#include <Arduino.h>
+#include "inttimer.h"
 #include "indicator.h"
+
+TimerClass indicator_inttimer(3);
+
+void indicator_start(void) {
+  indicator_inttimer.init(250000);
+  indicator_inttimer.start();
+}
