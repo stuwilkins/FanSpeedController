@@ -93,7 +93,7 @@ void loop() {
   if ((millis() - last_loop_millis) > 3000) {
     float speed = bluetooth_calculate_speed();
     uint8_t op;
-    if(speed < 30.0) {
+    if (speed < 30.0) {
       op = static_cast<uint8_t>(255 * (speed / 30.0));
     } else {
       op = 255;
