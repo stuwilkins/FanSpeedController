@@ -57,12 +57,12 @@ void NeoPixelIndicator::begin(void) {
 
   // startupEffect(0xFF0000, 2);
 
-  for(int i = 0; i < 256; i++) {
+  for (int i = 0; i < 256; i++) {
     setLevel(0, i);
     setLevel(1, i);
     delay(2);
   }
-  for(int i = 0; i < 256; i++) {
+  for (int i = 0; i < 256; i++) {
     setLevel(0, 255 - i);
     setLevel(1, 255 - i);
     delay(2);
