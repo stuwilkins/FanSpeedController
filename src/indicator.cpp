@@ -33,30 +33,56 @@
 NeoPixelIndicator::NeoPixelIndicator(void) {
   neopixel = new Adafruit_NeoPixel(1, PIN_NEOPIXEL, NEO_GRB);
   strip = new Adafruit_NeoPixel(12, PIN_STRIP, NEO_RGB);
-  // timer = new TimerClass(3);
+  timer = new TimerClass(3);
 
-  // timer->init(250000);
-  // timer->start();
+  timer->init(100000);
+  timer->setCallback(NeoPixelIndicator::callback, this);
+
+  ticktock = 0;
+  neopixelFlash = 1;
 }
 
 NeoPixelIndicator::~NeoPixelIndicator(void) {
   delete neopixel;
   delete strip;
-  // delete timer;
+  delete timer;
 }
 
 void NeoPixelIndicator::begin(void) {
+  timer->start();
   neopixel->begin();
   neopixel->show();
   strip->begin();
   strip->show();
+}
 
-  neopixel->setBrightness(10);
-  neopixel->setPixelColor(0, OFF);
-  neopixel->show();
+void NeoPixelIndicator::timerTick(void) {
+  if (!neopixelFlash) {
+    // no flash
+    if (neopixelCurrentStatus != neopixelStatus) {
+      neopixelCurrentStatus = neopixelStatus;
+      neopixel->setBrightness(20);
+      neopixel->setPixelColor(0, neopixelStatus);
+      neopixel->show();
+    }
+  } else {
+    if (!(ticktock % neopixelFlash)) {
+      if (neopixelCurrentStatus) {
+        neopixelCurrentStatus = 0;
+        neopixel->setBrightness(20);
+        neopixel->setPixelColor(0, 0);
+      } else {
+        neopixelCurrentStatus = neopixelStatus;
+        neopixel->setBrightness(20);
+        neopixel->setPixelColor(0, neopixelStatus);
+      }
+      neopixel->show();
+    }
+  }
+  ticktock++;
+}
 
-  // startupEffect(0xFF0000, 2);
-
+void NeoPixelIndicator::startupEffect(void) {
   for (int i = 0; i < 256; i++) {
     setLevel(0, i);
     setLevel(1, i);
@@ -69,23 +95,9 @@ void NeoPixelIndicator::begin(void) {
   }
 }
 
-void NeoPixelIndicator::startupEffect(uint32_t color, int wait) {
-  for (long firstPixelHue = 0; firstPixelHue < 65536; firstPixelHue += 256) {
-    // DEBUG_PRINT("firstPixelHue = %ld\n", firstPixelHue);
-    for (int i = 0; i < 6; i++) {
-      int pixelHue = firstPixelHue + (i * 65536L / strip->numPixels());
-      // DEBUG_PRINT("pixelHue = %ld\n", pixelHue);
-      strip->setPixelColor(5 - i, strip->gamma32(strip->ColorHSV(pixelHue)));
-      strip->setPixelColor(i + 6, strip->gamma32(strip->ColorHSV(pixelHue)));
-    }
-    strip->show();
-    delay(wait);
-  }
-}
-
-void NeoPixelIndicator::setStatus(int status) {
-  neopixel->setPixelColor(0, status);
-  neopixel->show();
+void NeoPixelIndicator::setStatus(int status, int flash) {
+  neopixelStatus = status;
+  neopixelFlash = flash;
 }
 
 void NeoPixelIndicator::setLevel(int display, uint8_t level) {

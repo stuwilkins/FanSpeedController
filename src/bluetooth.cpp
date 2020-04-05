@@ -48,30 +48,15 @@ bool check_mac_whitelist(uint8_t *mac) {
   uint8_t zero[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   while (memcmp(bluetooth_mac_whitelist[i], zero, 6)) {
     if (!memcmp(bluetooth_mac_whitelist[i], mac, 6)) {
-      DEBUG_PRINT("MAC %02X:%02X:%02X:%02X:%02X:%02X"
-                  " is in whitelist\n",
-                  mac[5], mac[4], mac[3],
-                  mac[2], mac[1], mac[0]);
       return true;
     }
     i++;
   }
 
-  DEBUG_PRINT("MAC %02X:%02X:%02X:%02X:%02X:%02X"
-              " is NOT whitelist\n",
-              mac[5], mac[4], mac[3],
-              mac[2], mac[1], mac[0]);
   return false;
 }
 
 void scan_callback(ble_gap_evt_adv_report_t* report) {
-  // DEBUG_PRINT("Found device with MAC %02X:%02X:%02X:%02X:%02X:%02X"
-  //   " Signal = %d dBm\n",
-  //   report->peer_addr.addr[5], report->peer_addr.addr[4],
-  //   report->peer_addr.addr[3], report->peer_addr.addr[2],
-  //   report->peer_addr.addr[1], report->peer_addr.addr[0],
-  //   report->rssi);
-
   if (check_mac_whitelist(report->peer_addr.addr)) {
     DEBUG_PRINT("Connecting to device with MAC %02X:%02X:%02X:%02X:%02X:%02X"
       " Signal = %d dBm\n",
@@ -87,15 +72,15 @@ void scan_callback(ble_gap_evt_adv_report_t* report) {
 
 void connect_callback(uint16_t conn_handle) {
   BLEConnection* connection = Bluefruit.Connection(conn_handle);
-  char peer_name[32] = { 0 };
+
+  char peer_name[NAME_BUFFER_LEN] = { 0 };
   connection->getPeerName(peer_name, sizeof(peer_name));
-  DEBUG_PRINT("Connected to [%s]\n", peer_name);
+  DEBUG_PRINT("Connected to : %s\n", peer_name);
 
   bool notify = false;
   if (clientSandC.discover(conn_handle)) {
     if ( !clientSandC.enableNotify() ) {
       DEBUG_COMMENT("Couldn't enable notify for SandC measurement.\n");
-      Bluefruit.disconnect(conn_handle);
     } else {
       DEBUG_COMMENT("Enabled notify on sandc\n");
       notify = true;
@@ -105,7 +90,6 @@ void connect_callback(uint16_t conn_handle) {
   if (clientPower.discover(conn_handle)) {
     if ( !clientPower.enableNotify() ) {
       DEBUG_COMMENT("Couldn't enable notify for Power measurement.\n");
-      Bluefruit.disconnect(conn_handle);
     } else {
       DEBUG_COMMENT("Enabled notify on power\n");
       notify = true;
@@ -113,6 +97,7 @@ void connect_callback(uint16_t conn_handle) {
   }
 
   if (!notify) {
+      DEBUG_COMMENT("Error: Disconnecting\n");
       Bluefruit.disconnect(conn_handle);
   }
 }
@@ -124,38 +109,53 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
 }
 
 void uart_connect_callback(uint16_t conn_handle) {
-  (void) conn_handle;
-  DEBUG_COMMENT("Device connected to UART\n");
+  BLEConnection* connection = Bluefruit.Connection(conn_handle);
+
+  char peer_name[NAME_BUFFER_LEN] = { 0 };
+  connection->getPeerName(peer_name, sizeof(peer_name));
+  DEBUG_PRINT("Device connected to UART : %s\n", peer_name);
 }
 
 void uart_disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   (void) reason;
   (void) conn_handle;
 
-  DEBUG_COMMENT("UART Disconnected\n");
+  DEBUG_COMMENT("Device disconnected from UART.\n");
 }
 
 void uart_rx_callback(uint16_t conn_handle) {
   (void) conn_handle;
 
   // Forward data from Mobile to our peripheral
-  char str[20+1] = { 0 };
-  bleuart.read(str, 20);
+  char str[UART_STR_BUFFER_LEN] = { 0 };
+  bleuart.read(str, sizeof(str));
 
   DEBUG_PRINT("Recieved : %s\n", str);
 
   // Now do callback
-  int str_len = 20;
-  (*uart_usr_rx_callback)(str, str_len, uart_usr_rx_callback_ptr);
+  (*uart_usr_rx_callback)(str, sizeof(str), uart_usr_rx_callback_ptr);
 }
 
-float calculate_bluetooth_speed(void) {
+float bluetooth_calculate_speed(void) {
   return clientSandC.getSandC()->calculate();
 }
 
 void bluetooth_set_rx_callback(bluetoothFuncPtr_t func, void* ctx) {
   uart_usr_rx_callback = func;
   uart_usr_rx_callback_ptr = ctx;
+}
+
+int bluetooth_get_connections(void) {
+  int rtn = 0;
+  if (clientSandC.discovered()) {
+    rtn |= 0x01;
+  }
+
+  if (clientPower.discovered()) {
+    rtn |= 0x02;
+  }
+
+  return rtn;
 }
 
 void bluetooth_setup(void) {

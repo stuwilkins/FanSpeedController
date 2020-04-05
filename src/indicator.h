@@ -39,15 +39,22 @@ class NeoPixelIndicator {
   NeoPixelIndicator(void);
   ~NeoPixelIndicator(void);
   void begin(void);
-  void setStatus(int status);
+  void setStatus(int status, int flash = 1);
   void setLevel(int display, uint8_t level);
+  void startupEffect(void);
+  void timerTick(void);
+  static void callback(void* ctx) {
+    static_cast<NeoPixelIndicator*>(ctx)->timerTick();
+  }
 
  private:
-  void startupEffect(uint32_t color, int wait);
-
-  // TimerClass *timer;
+  TimerClass *timer;
   Adafruit_NeoPixel *neopixel;
   Adafruit_NeoPixel *strip;
+  unsigned long ticktock;
+  int neopixelStatus;
+  int neopixelFlash;
+  int neopixelCurrentStatus;
 };
 
 extern NeoPixelIndicator indicator;

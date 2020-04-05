@@ -84,12 +84,21 @@ void setup() {
     zero_crossing_isr, CHANGE);
 
   DEBUG_COMMENT("Finished setup.\n");
-  indicator.setStatus(NeoPixelIndicator::OK);
+  indicator.startupEffect();
+  indicator.setStatus(NeoPixelIndicator::OK, 10);
 }
 
 unsigned long last_loop_millis = 0;
 
 void loop() {
+  if (bluetooth_get_connections()) {
+    // We have active connections
+    indicator.setStatus(NeoPixelIndicator::BT_CONNECTED, 10);
+  } else {
+    indicator.setStatus(NeoPixelIndicator::OK, 0);
+  }
+
+
   if ((millis() - last_loop_millis) > 3000) {
     DEBUG_PRINT("Mains Frequency          = %f\n", calc_mains_freq());
     DEBUG_PRINT("Fan 1 delay              = %ld\n", fan1_delay);
@@ -98,7 +107,9 @@ void loop() {
     DEBUG_PRINT("Zerocross pulse positive = %ld\n", zero_cross_pulse1);
     DEBUG_PRINT("Zerocross pulse negative = %ld\n", zero_cross_pulse2);
 
-    float speed = calculate_bluetooth_speed();
+    DEBUG_PRINT("Connections              = %d\n", bluetooth_get_connections());
+
+    float speed = bluetooth_calculate_speed();
     DEBUG_PRINT("Speed                 = %f\n", speed);
 
     indicator.setLevel(0, 256 * (speed/30.0));
