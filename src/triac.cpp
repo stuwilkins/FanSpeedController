@@ -27,7 +27,7 @@
 #include "wiring.h"
 #include "triac.h"
 
-TimerClass triac_inttimer(2);
+TimerClass triac_inttimer(4);
 
 volatile int zero_cross_clock = 0;
 unsigned long zero_cross_last_clock = 0;
@@ -37,7 +37,9 @@ volatile long int zero_cross_micros = 0;
 unsigned long fan1_delay = 0;
 unsigned long fan2_delay = 0;
 unsigned long hardtimer_count = 0;
-unsigned long zero_cross_pulse = 0;
+unsigned long zero_cross_pulse1 = 0;
+unsigned long zero_cross_pulse2 = 0;
+unsigned long zero_cross_positive = 0;
 unsigned long zero_cross_negative = 0;
 
 void zero_crossing_isr(void) {
@@ -46,9 +48,11 @@ void zero_crossing_isr(void) {
     zero_cross_trigger_1 = true;
     zero_cross_trigger_2 = true;
     zero_cross_micros = micros();
-    zero_cross_pulse = micros() - zero_cross_negative;
-  } else {
     zero_cross_negative = micros();
+    zero_cross_pulse2 = micros() - zero_cross_positive;
+  } else {
+    zero_cross_positive = micros();
+    zero_cross_pulse1 = micros() - zero_cross_negative;
   }
 }
 

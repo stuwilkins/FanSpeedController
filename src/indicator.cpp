@@ -25,24 +25,91 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 #include "inttimer.h"
+#include "wiring.h"
+#include "debug.h"
 #include "indicator.h"
+#include "colormap.h"
 
 NeoPixelIndicator::NeoPixelIndicator(void) {
   neopixel = new Adafruit_NeoPixel(1, PIN_NEOPIXEL, NEO_GRB);
-  timer = new TimerClass(3);
+  strip = new Adafruit_NeoPixel(12, PIN_STRIP, NEO_RGB);
+  // timer = new TimerClass(3);
 
-  timer->init(250000);
-  timer->start();
-}
-
-void NeoPixelIndicator::begin(void) {
-  neopixel->begin();
-  neopixel->setBrightness(10);
-  neopixel->setPixelColor(0, 0xFF0000);
-  neopixel->show();
+  // timer->init(250000);
+  // timer->start();
 }
 
 NeoPixelIndicator::~NeoPixelIndicator(void) {
   delete neopixel;
-  delete timer;
+  delete strip;
+  // delete timer;
 }
+
+void NeoPixelIndicator::begin(void) {
+  neopixel->begin();
+  neopixel->show();
+  strip->begin();
+  strip->show();
+
+  neopixel->setBrightness(10);
+  neopixel->setPixelColor(0, OFF);
+  neopixel->show();
+
+  // startupEffect(0xFF0000, 2);
+
+  for(int i = 0; i < 256; i++) {
+    setLevel(0, i);
+    setLevel(1, i);
+    delay(2);
+  }
+  for(int i = 0; i < 256; i++) {
+    setLevel(0, 255 - i);
+    setLevel(1, 255 - i);
+    delay(2);
+  }
+}
+
+void NeoPixelIndicator::startupEffect(uint32_t color, int wait) {
+  for (long firstPixelHue = 0; firstPixelHue < 65536; firstPixelHue += 256) {
+    // DEBUG_PRINT("firstPixelHue = %ld\n", firstPixelHue);
+    for (int i = 0; i < 6; i++) {
+      int pixelHue = firstPixelHue + (i * 65536L / strip->numPixels());
+      // DEBUG_PRINT("pixelHue = %ld\n", pixelHue);
+      strip->setPixelColor(5 - i, strip->gamma32(strip->ColorHSV(pixelHue)));
+      strip->setPixelColor(i + 6, strip->gamma32(strip->ColorHSV(pixelHue)));
+    }
+    strip->show();
+    delay(wait);
+  }
+}
+
+void NeoPixelIndicator::setStatus(int status) {
+  neopixel->setPixelColor(0, status);
+  neopixel->show();
+}
+
+void NeoPixelIndicator::setLevel(int display, uint8_t level) {
+  // Level is from 0 to 255.
+
+  int h = (level * 6 / 256 + 1);
+
+  // strip->setBrightness(255);
+  if (display == 0) {
+    for (int i = 0; i < h; i++) {
+      strip->setPixelColor(i, colormap[level]);
+    }
+    for (int i = h; i < 6; i++) {
+      strip->setPixelColor(i, 0);
+    }
+  } else if (display == 1) {
+    for (int i = 0; i < h; i++) {
+      strip->setPixelColor(11 - i, colormap[level]);
+    }
+    for (int i = h; i < 6; i++) {
+      strip->setPixelColor(11 - i, 0);
+    }
+  }
+  strip->show();
+}
+
+NeoPixelIndicator indicator;

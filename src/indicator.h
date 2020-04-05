@@ -30,12 +30,26 @@
 
 class NeoPixelIndicator {
  public:
+  enum {
+    BOOT         = 0xFFFF00,
+    OK           = 0x00FF00,
+    OFF          = 0x000000,
+    BT_CONNECTED = 0x0000FF,
+  };
   NeoPixelIndicator(void);
   ~NeoPixelIndicator(void);
   void begin(void);
+  void setStatus(int status);
+  void setLevel(int display, uint8_t level);
+
  private:
-  TimerClass *timer;
+  void startupEffect(uint32_t color, int wait);
+
+  // TimerClass *timer;
   Adafruit_NeoPixel *neopixel;
+  Adafruit_NeoPixel *strip;
 };
+
+extern NeoPixelIndicator indicator;
 
 #endif  // SRC_INDICATOR_H_

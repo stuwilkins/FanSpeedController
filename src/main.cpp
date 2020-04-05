@@ -33,12 +33,6 @@
 #include "indicator.h"
 
 //
-// User Interface
-//
-
-NeoPixelIndicator indicator;
-
-//
 // ISR / Timer
 //
 
@@ -61,7 +55,6 @@ void setup() {
   // Setup Input / Output
 
   pinMode(LED_BUILTIN,      OUTPUT);
-  pinMode(PIN_NEOPIXEL,     INPUT_PULLUP);
   pinMode(PIN_MAINS_CLOCK,  INPUT_PULLUP);
   pinMode(PIN_FAN_1,        OUTPUT);
   pinMode(PIN_FAN_2,        OUTPUT);
@@ -69,6 +62,7 @@ void setup() {
   digitalWrite(PIN_FAN_2,   LOW);
 
   indicator.begin();
+  indicator.setStatus(NeoPixelIndicator::BOOT);
 
   // Setup Serial Monitor
 
@@ -83,9 +77,6 @@ void setup() {
   DEBUG_COMMENT("Setting up hardware timer.\n");
   triac_setup();
 
-  fan1_delay = 0;
-  fan2_delay = 0;
-
   // Setup Bluetooth
   DEBUG_COMMENT("Setting up bluetooth.\n");
   bluetooth_setup();
@@ -95,20 +86,24 @@ void setup() {
     zero_crossing_isr, CHANGE);
 
   DEBUG_COMMENT("Finished setup.\n");
+  indicator.setStatus(NeoPixelIndicator::OK);
 }
 
 unsigned long last_loop_millis = 0;
 
 void loop() {
-  if ((millis() - last_loop_millis) > 5000) {
-    DEBUG_PRINT("Mains Frequency       = %f\n", calc_mains_freq());
-    DEBUG_PRINT("Fan 1 delay           = %ld\n", fan1_delay);
-    DEBUG_PRINT("Fan 2 delay           = %ld\n", fan2_delay);
-    DEBUG_PRINT("Hardtimer count       = %ld\n", hardtimer_count);
-    DEBUG_PRINT("Zerocross pulse width = %ld\n", zero_cross_pulse);
+  if ((millis() - last_loop_millis) > 3000) {
+    DEBUG_PRINT("Mains Frequency          = %f\n", calc_mains_freq());
+    DEBUG_PRINT("Fan 1 delay              = %ld\n", fan1_delay);
+    DEBUG_PRINT("Fan 2 delay              = %ld\n", fan2_delay);
+    DEBUG_PRINT("Hardtimer count          = %ld\n", hardtimer_count);
+    DEBUG_PRINT("Zerocross pulse positive = %ld\n", zero_cross_pulse1);
+    DEBUG_PRINT("Zerocross pulse negative = %ld\n", zero_cross_pulse2);
 
     float speed = calculate_bluetooth_speed();
     DEBUG_PRINT("Speed                 = %f\n", speed);
+
+    indicator.setLevel(0, 256 * (speed/30.0));
 
     if (speed > 5) {
       fan1_delay = 1;

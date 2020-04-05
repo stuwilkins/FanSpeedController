@@ -26,6 +26,7 @@
 #include "BLEClient.h"
 #include "debug.h"
 #include "bluetooth.h"
+#include "indicator.h"
 
 BLEUart bleuart;
 BLEClientSandC  clientSandC;
@@ -35,6 +36,7 @@ bool power_connected = false;
 bool sandc_connected = false;
 
 uint8_t bluetooth_mac_whitelist[][6] = {{0x99, 0xE8, 0x2C, 0xFB, 0x62, 0xFC},
+                                        // {0x94, 0x4F, 0xD9, 0xDA, 0x39, 0xDD},
                                         {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
 
 static void defaultCallback(const char *cmd, const int cmd_len, void * ctx) {}
@@ -45,70 +47,73 @@ bool check_mac_whitelist(uint8_t *mac) {
   int i = 0;
   uint8_t zero[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   while (memcmp(bluetooth_mac_whitelist[i], zero, 6)) {
-    if (!memcmp(mac, bluetooth_mac_whitelist[i], 6)) {
+    if (!memcmp(bluetooth_mac_whitelist[i], mac, 6)) {
+      DEBUG_PRINT("MAC %02X:%02X:%02X:%02X:%02X:%02X"
+                  " is in whitelist\n",
+                  mac[5], mac[4], mac[3],
+                  mac[2], mac[1], mac[0]);
       return true;
     }
+    i++;
   }
 
+  DEBUG_PRINT("MAC %02X:%02X:%02X:%02X:%02X:%02X"
+              " is NOT whitelist\n",
+              mac[5], mac[4], mac[3],
+              mac[2], mac[1], mac[0]);
   return false;
 }
 
 void scan_callback(ble_gap_evt_adv_report_t* report) {
-  DEBUG_PRINT("Found device with MAC %02X:%02X:%02X:%02X:%02X:%02X"
-    " Signal = %d dBm\n",
-    report->peer_addr.addr[4], report->peer_addr.addr[5],
-    report->peer_addr.addr[2], report->peer_addr.addr[3],
-    report->peer_addr.addr[0], report->peer_addr.addr[1],
-    report->rssi);
+  // DEBUG_PRINT("Found device with MAC %02X:%02X:%02X:%02X:%02X:%02X"
+  //   " Signal = %d dBm\n",
+  //   report->peer_addr.addr[5], report->peer_addr.addr[4],
+  //   report->peer_addr.addr[3], report->peer_addr.addr[2],
+  //   report->peer_addr.addr[1], report->peer_addr.addr[0],
+  //   report->rssi);
 
-  if ( Bluefruit.Scanner.checkReportForService(report, clientSandC) ) {
-    if (check_mac_whitelist(report->peer_addr.addr)) {
-      DEBUG_PRINT("Connecting to speed sensor. Signal %d dBm\n", report->rssi);
-      Bluefruit.Central.connect(report);
-      sandc_connected = true;
-    } else {
-      DEBUG_COMMENT("Skipping speed and cadence sensor, MAC does not match.\n");
-    }
+  if (check_mac_whitelist(report->peer_addr.addr)) {
+    DEBUG_PRINT("Connecting to device with MAC %02X:%02X:%02X:%02X:%02X:%02X"
+      " Signal = %d dBm\n",
+      report->peer_addr.addr[5], report->peer_addr.addr[4],
+      report->peer_addr.addr[3], report->peer_addr.addr[2],
+      report->peer_addr.addr[1], report->peer_addr.addr[0],
+      report->rssi);
+    Bluefruit.Central.connect(report);
   }
 
-  if ( Bluefruit.Scanner.checkReportForService(report, clientPower) ) {
-    if (check_mac_whitelist(report->peer_addr.addr)) {
-      DEBUG_PRINT("Connecting to power sensor. Signal %d dBm\n", report->rssi);
-      Bluefruit.Central.connect(report);
-      power_connected = true;
-    } else {
-      DEBUG_COMMENT("Skipping power sensor, MAC does not match.\n");
-    }
-  }
-
-  if (power_connected && sandc_connected) {
-    Bluefruit.Scanner.stop();
-  } else {
-    Bluefruit.Scanner.resume();
-  }
+  Bluefruit.Scanner.resume();
 }
 
 void connect_callback(uint16_t conn_handle) {
-  if ( !clientSandC.discover(conn_handle) ) {
-    Bluefruit.disconnect(conn_handle);
-    DEBUG_COMMENT("Unable to discover SandC device.\n");
-    return;
+  BLEConnection* connection = Bluefruit.Connection(conn_handle);
+  char peer_name[32] = { 0 };
+  connection->getPeerName(peer_name, sizeof(peer_name));
+  DEBUG_PRINT("Connected to [%s]\n", peer_name);
+
+  bool notify = false;
+  if (clientSandC.discover(conn_handle)) {
+    if ( !clientSandC.enableNotify() ) {
+      DEBUG_COMMENT("Couldn't enable notify for SandC measurement.\n");
+      Bluefruit.disconnect(conn_handle);
+    } else {
+      DEBUG_COMMENT("Enabled notify on sandc\n");
+      notify = true;
+    }
   }
 
-  if ( !clientSandC.enableNotify() ) {
-    DEBUG_COMMENT("Couldn't enable notify for SandC measurement.\n");
-    return;
+  if (clientPower.discover(conn_handle)) {
+    if ( !clientPower.enableNotify() ) {
+      DEBUG_COMMENT("Couldn't enable notify for Power measurement.\n");
+      Bluefruit.disconnect(conn_handle);
+    } else {
+      DEBUG_COMMENT("Enabled notify on power\n");
+      notify = true;
+    }
   }
 
-  if ( !clientPower.discover(conn_handle) ) {
-    Bluefruit.disconnect(conn_handle);
-    DEBUG_COMMENT("Unable to discover power device.\n");
-    return;
-  }
-
-  if ( !clientPower.enableNotify() ) {
-    DEBUG_COMMENT("Couldn't enable notify for Power measurement.\n");
-    return;
+  if (!notify) {
+      Bluefruit.disconnect(conn_handle);
   }
 }
 
@@ -116,9 +121,6 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   (void) conn_handle;
 
   DEBUG_PRINT("Disconnected, reason = 0x%02X\n", reason);
-
-  power_connected = false;
-  sandc_connected = false;
 }
 
 void uart_connect_callback(uint16_t conn_handle) {
@@ -157,8 +159,8 @@ void bluetooth_set_rx_callback(bluetoothFuncPtr_t func, void* ctx) {
 }
 
 void bluetooth_setup(void) {
-  Bluefruit.begin(2, 2);
-  Bluefruit.setTxPower(8);
+  Bluefruit.begin(1, 2);
+  Bluefruit.setTxPower(4);
   Bluefruit.setName(BT_NAME);
 
   // Set Connect / Disconnect Callbacks
@@ -167,9 +169,19 @@ void bluetooth_setup(void) {
   Bluefruit.Central.setConnectCallback(connect_callback);
   Bluefruit.Central.setDisconnectCallback(disconnect_callback);
 
+  clientSandC.begin();
+  clientPower.begin();
+
   // Configure and Start BLE Uart Service
   bleuart.begin();
   bleuart.setRxCallback(uart_rx_callback);
+
+  Bluefruit.Scanner.setRxCallback(scan_callback);
+  Bluefruit.Scanner.restartOnDisconnect(true);
+  Bluefruit.Scanner.filterUuid(clientSandC.uuid, clientPower.uuid);
+  Bluefruit.Scanner.setInterval(160, 80);  // in unit of 0.625 ms
+  Bluefruit.Scanner.useActiveScan(false);
+  Bluefruit.Scanner.start(0);
 
   Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
   Bluefruit.Advertising.addTxPower();
@@ -179,15 +191,6 @@ void bluetooth_setup(void) {
   Bluefruit.Advertising.setInterval(32, 244);    // in unit of 0.625 ms
   Bluefruit.Advertising.setFastTimeout(30);  // number of seconds in fast mode
   Bluefruit.Advertising.start(0);  // 0 = Don't stop advertising after n seconds
-
-  Bluefruit.Scanner.setRxCallback(scan_callback);
-  Bluefruit.Scanner.restartOnDisconnect(true);
-  Bluefruit.Scanner.setInterval(160, 80);  // in unit of 0.625 ms
-  Bluefruit.Scanner.useActiveScan(false);
-  Bluefruit.Scanner.start(0);
-
-  clientSandC.begin();
-  clientPower.begin();
 
   Bluefruit.setConnLedInterval(250);
 }

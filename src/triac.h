@@ -25,7 +25,8 @@
 #ifndef SRC_TRIAC_H_
 #define SRC_TRIAC_H_
 
-extern unsigned long zero_cross_pulse;
+extern unsigned long zero_cross_pulse1;
+extern unsigned long zero_cross_pulse2;
 extern unsigned long fan1_delay;
 extern unsigned long fan2_delay;
 extern unsigned long hardtimer_count;
