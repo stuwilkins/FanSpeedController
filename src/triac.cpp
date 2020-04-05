@@ -27,7 +27,7 @@
 #include "wiring.h"
 #include "triac.h"
 
-TimerClass triac_inttimer(4);
+TimerClass triac_inttimer(2);
 
 volatile int zero_cross_clock = 0;
 unsigned long zero_cross_last_clock = 0;
@@ -56,7 +56,9 @@ void zero_crossing_isr(void) {
   }
 }
 
-void hardtimer_callback(void) {
+void hardtimer_callback(void* ptr) {
+  (void) ptr;
+
   if (fan1_delay > 0) {
     if (zero_cross_trigger_1) {
       if ((micros() - zero_cross_micros) > fan1_delay) {

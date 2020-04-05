@@ -27,13 +27,13 @@
 
 #include <nrf_timer.h>
 
-typedef void (*funcPtr_t)();
+typedef void (*funcPtr_t)(void*);
 
 class TimerClass {
  public:
   explicit TimerClass(int timer = 1);
   void init(int microsecs);
-  void setCallback(funcPtr_t callback);
+  void setCallback(funcPtr_t callback, void* ptr = NULL);
   void start(void);
   static void trigger(TimerClass* ctx) {
     if (ctx) ctx->process();
@@ -43,6 +43,7 @@ class TimerClass {
   void setNVIC(IRQn_Type IRQn);
   NRF_TIMER_Type*        nrf_timer;
   funcPtr_t callback_ptr;
+  void *usrptr;
 };
 
 extern NRF_TIMER_Type* nrf_timers[5];
