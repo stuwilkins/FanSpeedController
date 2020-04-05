@@ -32,9 +32,7 @@
 #include "uart_cmd.h"
 #include "indicator.h"
 
-//
-// ISR / Timer
-//
+#define SERIAL_TIMEOUT        10000
 
 void bluetooth_rx_callback(const char* cmd, int cmd_len, void* ctx) {
   DEBUG_PRINT("Recieved data [%s]\n", cmd);

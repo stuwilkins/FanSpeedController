@@ -29,7 +29,6 @@
 #define PIN_FAN_1             5
 #define PIN_FAN_2             9
 #define PIN_STRIP             10
-#define SERIAL_TIMEOUT        10000
 
 #endif  // SRC_WIRING_H_
 
