@@ -24,6 +24,7 @@
 
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
+
 #include "wiring.h"
 #include "debug.h"
 #include "triac.h"
@@ -36,17 +37,6 @@
 
 void bluetooth_rx_callback(const char* cmd, int cmd_len, void* ctx) {
   DEBUG_PRINT("Recieved data [%s]\n", cmd);
-  if (!strncmp(CMD_FAN1_ON, cmd, cmd_len)) {
-    fan1_delay = 1;
-  } else if (!strncmp(CMD_FAN1_OFF, cmd, cmd_len)) {
-    fan1_delay = 0;
-  } else if (!strncmp(CMD_FAN2_ON, cmd, cmd_len)) {
-    fan2_delay = 1;
-  } else if (!strncmp(CMD_FAN2_OFF, cmd, cmd_len)) {
-    fan2_delay = 0;
-  } else {
-    DEBUG_COMMENT("Unknown command\n");
-  }
 }
 
 void setup() {
@@ -59,6 +49,8 @@ void setup() {
   digitalWrite(PIN_FAN_1,   LOW);
   digitalWrite(PIN_FAN_2,   LOW);
 
+  // Start indicator
+
   indicator.begin();
   indicator.setStatus(NeoPixelIndicator::BOOT);
 
@@ -67,12 +59,11 @@ void setup() {
   Serial.begin(115200);
   unsigned long _start = millis();
   while (!Serial && ((millis() - _start < SERIAL_TIMEOUT))) {
-    delay(10);   // for nrf52840 with native usb
+    delay(10);
   }
-  DEBUG_COMMENT("Started FanSpeedController.\n");
-  // Setup timer
 
-  DEBUG_COMMENT("Setting up hardware timer.\n");
+  DEBUG_COMMENT("Started FanSpeedController.\n");
+
   triac_setup();
 
   // Setup Bluetooth
@@ -83,9 +74,9 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(PIN_MAINS_CLOCK),
     zero_crossing_isr, CHANGE);
 
-  DEBUG_COMMENT("Finished setup.\n");
   indicator.startupEffect();
   indicator.setStatus(NeoPixelIndicator::OK, 10);
+  DEBUG_COMMENT("Finished setup.\n");
 }
 
 unsigned long last_loop_millis = 0;
@@ -100,27 +91,29 @@ void loop() {
 
 
   if ((millis() - last_loop_millis) > 3000) {
+    float speed = bluetooth_calculate_speed();
+    uint8_t op;
+    if(speed < 30.0) {
+      op = static_cast<uint8_t>(255 * (speed / 30.0));
+    } else {
+      op = 255;
+    }
+
+    indicator.setLevel(0, op);
+    indicator.setLevel(1, op);
+
+    if (speed > 5) {
+      triac_set_output(op, op);
+    } else {
+      triac_set_output(0, 0);
+    }
+
     DEBUG_PRINT("Mains Frequency          = %f\n", calc_mains_freq());
-    DEBUG_PRINT("Fan 1 delay              = %ld\n", fan1_delay);
-    DEBUG_PRINT("Fan 2 delay              = %ld\n", fan2_delay);
     DEBUG_PRINT("Hardtimer count          = %ld\n", hardtimer_count);
     DEBUG_PRINT("Zerocross pulse positive = %ld\n", zero_cross_pulse1);
     DEBUG_PRINT("Zerocross pulse negative = %ld\n", zero_cross_pulse2);
-
     DEBUG_PRINT("Connections              = %d\n", bluetooth_get_connections());
-
-    float speed = bluetooth_calculate_speed();
-    DEBUG_PRINT("Speed                 = %f\n", speed);
-
-    indicator.setLevel(0, 256 * (speed/30.0));
-
-    if (speed > 5) {
-      fan1_delay = 1;
-      fan2_delay = 1;
-    } else {
-      fan1_delay = 0;
-      fan2_delay = 0;
-    }
+    DEBUG_PRINT("Speed                    = %f\n", speed);
 
     last_loop_millis = millis();
   }

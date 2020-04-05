@@ -25,14 +25,12 @@
 #ifndef SRC_DEBUG_H_
 #define SRC_DEBUG_H_
 
-#define DEBUG_OUTPUT
-
 #ifdef DEBUG_OUTPUT
   #define DEBUG_PRINT(fmt, ...) \
-    Serial.printf("%s:%d:%s(): " fmt, \
+    Serial.printf("%s:%-5d:%s(): " fmt, \
             __FILE__, __LINE__, __func__, __VA_ARGS__);
   #define DEBUG_COMMENT(fmt) \
-    Serial.printf("%s:%d:%s(): " fmt, \
+    Serial.printf("%s:%-5d:%s(): " fmt, \
             __FILE__, __LINE__, __func__);
 #else
   #define DEBUG_PRINT(fmt, ...) \

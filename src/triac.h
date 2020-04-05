@@ -27,12 +27,11 @@
 
 extern unsigned long zero_cross_pulse1;
 extern unsigned long zero_cross_pulse2;
-extern unsigned long fan1_delay;
-extern unsigned long fan2_delay;
 extern unsigned long hardtimer_count;
 
 void triac_setup(void);
 void zero_crossing_isr(void);
 float calc_mains_freq(void);
+void triac_set_output(uint8_t op1, uint8_t op2);
 
 #endif  // SRC_TRIAC_H_

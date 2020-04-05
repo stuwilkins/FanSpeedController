@@ -25,6 +25,7 @@
 #include <Arduino.h>
 #include "inttimer.h"
 #include "wiring.h"
+#include "debug.h"
 #include "triac.h"
 
 TimerClass triac_inttimer(2);
@@ -108,4 +109,30 @@ void triac_setup(void) {
   triac_inttimer.setCallback(hardtimer_callback);
   triac_inttimer.init(5);
   triac_inttimer.start();
+}
+
+void triac_set_output(uint8_t op1, uint8_t op2) {
+  // Here we map the OP to values
+  // 1 = full on, 6000 = full off
+  if (op1 == 0) {
+    fan1_delay = 0;
+  } else {
+    fan1_delay = 6000L - (6000L * op1 / 255L);
+    if(fan1_delay == 0) {
+      fan1_delay = 1;
+    }
+  }
+
+  if (op2 == 0) {
+    fan2_delay = 0;
+  } else {
+    fan2_delay = 6000L - (6000L * op2 / 255L);
+    if(fan2_delay == 0) {
+      fan2_delay = 1;
+    }
+  }
+
+  DEBUG_PRINT("op1 = %d, op2 = %d\n", op1, op2);
+  DEBUG_PRINT("fan1_delay = %ld, fan2_delay = %ld\n",
+              fan1_delay, fan2_delay);
 }
