@@ -14,4 +14,4 @@ install:
 
 script:
     - platformio run
-    - cpplint --filter=-build/include_subdir,-runtime/int --exclude=colormap.h --recursive src/* include/*
+    - cpplint --filter=-build/include_subdir,-runtime/int --exclude=src/colormap.h --recursive src/* include/*
