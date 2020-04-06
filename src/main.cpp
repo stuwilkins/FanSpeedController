@@ -23,7 +23,10 @@
 //
 
 #include <Arduino.h>
+#include <SdFat.h>
 #include <Adafruit_NeoPixel.h>
+#include <Adafruit_SleepyDog.h>
+#include <Adafruit_SPIFlash.h>
 
 #include "wiring.h"
 #include "debug.h"
@@ -34,6 +37,10 @@
 #include "indicator.h"
 
 #define SERIAL_TIMEOUT        10000
+
+Adafruit_FlashTransport_QSPI flashTransport;
+Adafruit_SPIFlash flash(&flashTransport);
+FatFileSystem fatfs;
 
 void bluetooth_rx_callback(const char* cmd, int cmd_len, void* ctx) {
   DEBUG_PRINT("Recieved data [%s]\n", cmd);
@@ -64,24 +71,48 @@ void setup() {
 
   DEBUG_COMMENT("Started FanSpeedController.\n");
 
+  int countdownMS = Watchdog.enable(8000);
+  DEBUG_PRINT("Enabled watchdog with max countdown of %d\n", countdownMS);
+
   triac_setup();
+  Watchdog.reset();
 
   // Setup Bluetooth
   DEBUG_COMMENT("Setting up bluetooth.\n");
   bluetooth_setup();
   bluetooth_set_rx_callback(bluetooth_rx_callback, NULL);
+  Watchdog.reset();
 
   attachInterrupt(digitalPinToInterrupt(PIN_MAINS_CLOCK),
     zero_crossing_isr, CHANGE);
 
+  DEBUG_COMMENT("Setting up flash\n");
+  flash.begin();
+  fatfs.begin(&flash);
+  DEBUG_PRINT("JEDEC ID: 0x%X\n", flash.getJEDECID());
+  DEBUG_PRINT("Flash size: %d\n", flash.size());
+
   indicator.startupEffect();
   indicator.setStatus(NeoPixelIndicator::OK, 10);
+  Watchdog.reset();
   DEBUG_COMMENT("Finished setup.\n");
+
+  File myFile = fatfs.open("test.txt", FILE_WRITE);
+  if (myFile) {
+    DEBUG_COMMENT("Writing to test.txt...\n");
+    myFile.println("testing 1, 2, 3.");
+    myFile.close();
+    DEBUG_COMMENT("DONE");
+  } else {
+    DEBUG_COMMENT("Error opening test.txt\n");
+  }
 }
 
 unsigned long last_loop_millis = 0;
 
 void loop() {
+  Watchdog.reset();  // Pet the dog!
+
   if (bluetooth_get_connections()) {
     // We have active connections
     indicator.setStatus(NeoPixelIndicator::BT_CONNECTED, 10);
