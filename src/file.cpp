@@ -44,7 +44,8 @@ int32_t msc_read_cb(uint32_t lba, void* buffer, uint32_t bufsize) {
   // Note: SPIFLash Bock API: readBlocks/writeBlocks/syncBlocks
   // already include 4K sector caching internally.
   // We don't need to cache it, yahhhh!!
-  return flash.readBlocks(lba, (uint8_t*) buffer, bufsize/512) ? bufsize : -1;
+  return flash.readBlocks(lba, reinterpret_cast<uint8_t*>(buffer),
+    bufsize/512) ? bufsize : -1;
 }
 
 // Callback invoked when received WRITE10 command.
