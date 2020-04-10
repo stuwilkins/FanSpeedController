@@ -109,6 +109,8 @@ void triac_setup(void) {
   triac_inttimer.setCallback(hardtimer_callback);
   triac_inttimer.init(5);
   triac_inttimer.start();
+  attachInterrupt(digitalPinToInterrupt(PIN_MAINS_CLOCK),
+    zero_crossing_isr, CHANGE);
 }
 
 void triac_set_output(uint8_t op1, uint8_t op2) {
@@ -117,7 +119,7 @@ void triac_set_output(uint8_t op1, uint8_t op2) {
   if (op1 == 0) {
     fan1_delay = 0;
   } else {
-    fan1_delay = 6000L - (6000L * op1 / 255L);
+    fan1_delay = 5000L - (5000L * op1 / 255L);
     if (fan1_delay == 0) {
       fan1_delay = 1;
     }
@@ -126,7 +128,7 @@ void triac_set_output(uint8_t op1, uint8_t op2) {
   if (op2 == 0) {
     fan2_delay = 0;
   } else {
-    fan2_delay = 6000L - (6000L * op2 / 255L);
+    fan2_delay = 5000L - (5000L * op2 / 255L);
     if (fan2_delay == 0) {
       fan2_delay = 1;
     }

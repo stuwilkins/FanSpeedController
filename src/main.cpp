@@ -23,10 +23,8 @@
 //
 
 #include <Arduino.h>
-#include <SdFat.h>
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_SleepyDog.h>
-#include <Adafruit_SPIFlash.h>
 
 #include "wiring.h"
 #include "debug.h"
@@ -35,12 +33,9 @@
 #include "bluetooth.h"
 #include "uart_cmd.h"
 #include "indicator.h"
+#include "file.h"
 
-#define SERIAL_TIMEOUT        10000
-
-Adafruit_FlashTransport_QSPI flashTransport;
-Adafruit_SPIFlash flash(&flashTransport);
-FatFileSystem fatfs;
+#define SERIAL_TIMEOUT        5000
 
 void bluetooth_rx_callback(const char* cmd, int cmd_len, void* ctx) {
   DEBUG_PRINT("Recieved data [%s]\n", cmd);
@@ -61,6 +56,9 @@ void setup() {
   indicator.begin();
   indicator.setStatus(NeoPixelIndicator::BOOT);
 
+  // Flash drive must be setup before Serial Monitor
+  file_setup();
+
   // Setup Serial Monitor
 
   Serial.begin(115200);
@@ -71,8 +69,12 @@ void setup() {
 
   DEBUG_COMMENT("Started FanSpeedController.\n");
 
+  // Setup watchdog
+
   int countdownMS = Watchdog.enable(8000);
   DEBUG_PRINT("Enabled watchdog with max countdown of %d\n", countdownMS);
+
+  // Setup TRIACs
 
   triac_setup();
   Watchdog.reset();
@@ -83,34 +85,19 @@ void setup() {
   bluetooth_set_rx_callback(bluetooth_rx_callback, NULL);
   Watchdog.reset();
 
-  attachInterrupt(digitalPinToInterrupt(PIN_MAINS_CLOCK),
-    zero_crossing_isr, CHANGE);
-
-  DEBUG_COMMENT("Setting up flash\n");
-  flash.begin();
-  fatfs.begin(&flash);
-  DEBUG_PRINT("JEDEC ID: 0x%X\n", flash.getJEDECID());
-  DEBUG_PRINT("Flash size: %d\n", flash.size());
+  // Setup NeoPixel Indicators
 
   indicator.startupEffect();
   indicator.setStatus(NeoPixelIndicator::OK, 10);
   Watchdog.reset();
   DEBUG_COMMENT("Finished setup.\n");
-
-  File myFile = fatfs.open("test.txt", FILE_WRITE);
-  if (myFile) {
-    DEBUG_COMMENT("Writing to test.txt...\n");
-    myFile.println("testing 1, 2, 3.");
-    myFile.close();
-    DEBUG_COMMENT("DONE");
-  } else {
-    DEBUG_COMMENT("Error opening test.txt\n");
-  }
 }
 
-unsigned long last_loop_millis = 0;
-
 void loop() {
+  static unsigned long off_timer = 0;
+  static unsigned long last_loop_millis = 0;
+  static uint8_t op = 0;
+
   Watchdog.reset();  // Pet the dog!
 
   if (bluetooth_get_connections()) {
@@ -120,24 +107,29 @@ void loop() {
     indicator.setStatus(NeoPixelIndicator::OK, 0);
   }
 
-
   if ((millis() - last_loop_millis) > 3000) {
+    DEBUG_PRINT("off_timer = %ld\n", off_timer);
     float speed = bluetooth_calculate_speed();
-    uint8_t op;
-    if (speed < 30.0) {
-      op = static_cast<uint8_t>(255 * (speed / 30.0));
-    } else {
+    if (speed >= 20.0) {
       op = 255;
+      off_timer = millis();  // Reset each cycle
+    } else if ((speed >= 10.0) && (speed < 20.0)) {
+      op = static_cast<uint8_t>(255 * ((speed - 10)/ 22.5));
+      off_timer = millis();  // Reset each cycle
+    } else if (speed >= 1.5) {
+      op = 1;
+      off_timer = millis();  // Reset each cycle
+    }
+
+    // Check for off timer
+    if (((millis() - off_timer) > 30000L) && (speed < 1.5)) {
+      DEBUG_PRINT("off_timer countdown = %ld\n", millis() - off_timer);
+      op = 0;
     }
 
     indicator.setLevel(0, op);
     indicator.setLevel(1, op);
-
-    if (speed > 5) {
-      triac_set_output(op, op);
-    } else {
-      triac_set_output(0, 0);
-    }
+    triac_set_output(op, op);
 
     DEBUG_PRINT("Mains Frequency          = %f\n", calc_mains_freq());
     DEBUG_PRINT("Hardtimer count          = %ld\n", hardtimer_count);

@@ -92,6 +92,7 @@ BLEClientCharacteristicSandC::BLEClientCharacteristicSandC(void)
     : BLEClientCharacteristic(UUID16_CHR_CSC_MEASUREMENT) {
     _valid = 0;
     _wheel_circ = 67;
+    // :_wheel_circ = 2096;
 
     _wheel_revs = 0;
     _wheel_event_time = 0;
