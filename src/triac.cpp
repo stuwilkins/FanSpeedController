@@ -27,7 +27,7 @@
 #include "wiring.h"
 #include "debug.h"
 #include "triac.h"
-#include "data.h"
+#include "config.h"
 
 TimerClass triac_inttimer(2);
 

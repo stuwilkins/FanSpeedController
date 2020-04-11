@@ -34,7 +34,7 @@
 #include "uart_cmd.h"
 #include "indicator.h"
 #include "file.h"
-#include "data.h"
+#include "config.h"
 
 // Global variables
 config_data config;
@@ -73,7 +73,7 @@ void setup() {
 
   // Setup watchdog
 
-  int countdownMS = Watchdog.enable(8000);
+  int countdownMS = Watchdog.enable(WATCHDOG_TIMEOUT);
   DEBUG_PRINT("Enabled watchdog with max countdown of %d\n", countdownMS);
 
   // Setup TRIACs

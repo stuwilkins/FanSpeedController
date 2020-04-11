@@ -25,6 +25,7 @@
 #ifndef SRC_DATA_H_
 #define SRC_DATA_H_
 
+#define WATCHDOG_TIMEOUT            2000
 #define SERIAL_TIMEOUT              5000
 #define CONFIG_JSON_SIZE            2048
 #define CONFIG_FILENAME             "settings.json"

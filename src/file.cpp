@@ -27,7 +27,7 @@
 #include <Adafruit_SPIFlash.h>
 #include <Adafruit_TinyUSB.h>
 #include <ArduinoJson.h>
-#include "data.h"
+#include "config.h"
 #include "debug.h"
 #include "file.h"
 
@@ -99,6 +99,15 @@ int file_write_config(const char *filename) {
   return 0;
 }
 
+void read_mac_address(const char *str, uint8_t *addr) {
+  int mac[6];
+  sscanf(str, "%X:%X:%X:%X:%X:%X",
+         &mac[5], &mac[4], &mac[3], &mac[2], &mac[1], &mac[0]);
+  for (int i = 0; i < 6; i++) {
+    addr[i] = static_cast<uint8_t>(mac[i]);
+  }
+}
+
 int file_read_config(const char* filename) {
   // Allocate
   StaticJsonDocument<CONFIG_JSON_SIZE> doc;
@@ -121,19 +130,11 @@ int file_read_config(const char* filename) {
     config.triac_on_delay = doc["triac"]["on_delay"] | 0L;
 
     // Process mac addresses
-    int mac[6];
-    sscanf(doc["speed"]["sensor_id"].as<char *>(),
-      "%X:%X:%X:%X:%X:%X",
-      &mac[5], &mac[4], &mac[3], &mac[2], &mac[1], &mac[0]);
-    for (int i=0; i < 6; i++) {
-      config.bt_speed_sensor_id[i] = static_cast<uint8_t>(mac[i]);
-    }
-    sscanf(doc["power"]["sensor_id"].as<char *>(),
-      "%X:%X:%X:%X:%X:%X",
-      &mac[5], &mac[4], &mac[3], &mac[2], &mac[1], &mac[0]);
-    for (int i=0; i < 6; i++) {
-      config.bt_power_sensor_id[i] = static_cast<uint8_t>(mac[i]);
-    }
+    read_mac_address(doc["speed"]["sensor_id"].as<char *>(),
+      config.bt_speed_sensor_id);
+
+    read_mac_address(doc["power"]["sensor_id"].as<char *>(),
+      config.bt_power_sensor_id);
 
     // Print out config
 

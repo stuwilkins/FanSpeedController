@@ -27,7 +27,7 @@
 #include "debug.h"
 #include "bluetooth.h"
 #include "indicator.h"
-#include "data.h"
+#include "config.h"
 
 BLEUart bleuart;
 BLEClientSandC  clientSandC;
