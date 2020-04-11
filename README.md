@@ -10,4 +10,7 @@ The nRF52840 module is an
 [Adafruit Feather nRF52840 Express](https://www.adafruit.com/product/4062)
 and a big kudos to Adafruit and all the work they do for open hardware.
 
+I got the idea from [Keith Wakeham's Blog](https://titanlab.co/). Thanks to Keith
+for the interesting blog on bicycle related tech.
+
 ![Mains Controller](docs/mains_controller.jpg "Mains Controller")
