@@ -22,7 +22,6 @@
 // SOFTWARE.
 //
 
-#include <inttypes.h>
 #include <SdFat.h>
 #include <Adafruit_SPIFlash.h>
 #include <Adafruit_TinyUSB.h>
@@ -124,8 +123,9 @@ int file_read_config(const char* filename) {
 
     // Now load the structs
 
-    config.max_speed = doc["speed"]["max_speed"] | 15.0;
-    config.min_speed = doc["speed"]["min_speed"] | 5.0;
+    config.speed_max = doc["speed"]["max"] | 15.0;
+    config.speed_min = doc["speed"]["min"] | 5.0;
+    config.speed_threshold = doc["speed"]["threshold"] | 1.5;
     config.triac_off_delay = doc["triac"]["off_delay"] | 0L;
     config.triac_on_delay = doc["triac"]["on_delay"] | 0L;
 
@@ -138,18 +138,7 @@ int file_read_config(const char* filename) {
 
     // Print out config
 
-    DEBUG_PRINT("max_speed              = %f\n", config.max_speed);
-    DEBUG_PRINT("min_speed              = %f\n", config.min_speed);
-    DEBUG_PRINT("triac_on_delay         = %ld\n", config.triac_on_delay);
-    DEBUG_PRINT("triac_off_delay        = %ld\n", config.triac_off_delay);
-    DEBUG_PRINT("bt_speed_sensor_id     = %02X:%02X:%02X:%02X:%02X:%02X\n",
-      config.bt_speed_sensor_id[5], config.bt_speed_sensor_id[4],
-      config.bt_speed_sensor_id[3], config.bt_speed_sensor_id[2],
-      config.bt_speed_sensor_id[1], config.bt_speed_sensor_id[0]);
-    DEBUG_PRINT("bt_power_sensor_id     = %02X:%02X:%02X:%02X:%02X:%02X\n",
-      config.bt_power_sensor_id[5], config.bt_power_sensor_id[4],
-      config.bt_power_sensor_id[3], config.bt_power_sensor_id[2],
-      config.bt_power_sensor_id[1], config.bt_power_sensor_id[0]);
+    config_print();
 
     return 0;
   }

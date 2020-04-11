@@ -114,13 +114,14 @@ void loop() {
     file_loop();
 
     float speed = bluetooth_calculate_speed();
-    if (speed >= 20.0) {
+    if (speed >= config.speed_max) {
       op = 255;
       off_timer = millis();  // Reset each cycle
-    } else if ((speed >= 10.0) && (speed < 20.0)) {
-      op = static_cast<uint8_t>(255 * ((speed - 10)/ 22.5));
+    } else if ((speed >= config.speed_min) && (speed < config.speed_max)) {
+      op = static_cast<uint8_t>(255 * (
+          (speed - config.speed_min) / config.speed_max));
       off_timer = millis();  // Reset each cycle
-    } else if (speed >= 1.5) {
+    } else if (speed >= config.speed_threshold) {
       op = 1;
       off_timer = millis();  // Reset each cycle
     }

@@ -22,26 +22,21 @@
 // SOFTWARE.
 //
 
-#ifndef SRC_CONFIG_H_
-#define SRC_CONFIG_H_
+#include "config.h"
+#include "debug.h"
 
-#define WATCHDOG_TIMEOUT            2000
-#define SERIAL_TIMEOUT              5000
-#define CONFIG_JSON_SIZE            2048
-#define CONFIG_FILENAME             "settings.json"
-
-typedef struct {
-    float speed_max;
-    float speed_min;
-    float speed_threshold;
-    unsigned long triac_off_delay;
-    unsigned long triac_on_delay;
-    uint8_t bt_speed_sensor_id[6];
-    uint8_t bt_power_sensor_id[6];
-} config_data;
-
-extern config_data config;
-
-void config_print(void);
-
-#endif  // SRC_CONFIG_H_
+void config_print(void) {
+  DEBUG_PRINT("speed_max              = %f\n", config.speed_max);
+  DEBUG_PRINT("speed_min              = %f\n", config.speed_min);
+  DEBUG_PRINT("speed_threshold        = %f\n", config.speed_threshold);
+  DEBUG_PRINT("triac_on_delay         = %ld\n", config.triac_on_delay);
+  DEBUG_PRINT("triac_off_delay        = %ld\n", config.triac_off_delay);
+  DEBUG_PRINT("bt_speed_sensor_id     = %02X:%02X:%02X:%02X:%02X:%02X\n",
+              config.bt_speed_sensor_id[5], config.bt_speed_sensor_id[4],
+              config.bt_speed_sensor_id[3], config.bt_speed_sensor_id[2],
+              config.bt_speed_sensor_id[1], config.bt_speed_sensor_id[0]);
+  DEBUG_PRINT("bt_power_sensor_id     = %02X:%02X:%02X:%02X:%02X:%02X\n",
+              config.bt_power_sensor_id[5], config.bt_power_sensor_id[4],
+              config.bt_power_sensor_id[3], config.bt_power_sensor_id[2],
+              config.bt_power_sensor_id[1], config.bt_power_sensor_id[0]);
+}
