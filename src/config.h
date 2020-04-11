@@ -43,5 +43,6 @@ typedef struct {
 extern config_data config;
 
 void config_print(void);
+void config_set_defaults(void);
 
 #endif  // SRC_CONFIG_H_

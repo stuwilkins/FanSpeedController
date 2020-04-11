@@ -26,6 +26,18 @@
 #include "config.h"
 #include "debug.h"
 
+void config_set_defaults(void) {
+  config.speed_max = 15.0;
+  config.speed_min = 5.0;
+  config.speed_threshold = 1.5;
+  config.triac_off_delay = 4000L;
+  config.triac_on_delay = 1L;
+  for (int i = 0; i < 6; i++) {
+    config.bt_speed_sensor_id[i] = 0;
+    config.bt_power_sensor_id[i] = 0;
+  }
+}
+
 void config_print(void) {
   DEBUG_PRINT("speed_max              = %f\n", config.speed_max);
   DEBUG_PRINT("speed_min              = %f\n", config.speed_min);

@@ -53,6 +53,8 @@ void setup() {
   digitalWrite(PIN_FAN_1,   LOW);
   digitalWrite(PIN_FAN_2,   LOW);
 
+  config_set_defaults();
+
   // Start indicator
 
   indicator.begin();
@@ -92,6 +94,10 @@ void setup() {
   indicator.startupEffect();
   indicator.setStatus(NeoPixelIndicator::OK, 10);
   Watchdog.reset();
+
+  DEBUG_COMMENT("Config:\n");
+  config_print();
+
   DEBUG_COMMENT("Finished setup.\n");
 }
 
