@@ -27,6 +27,7 @@
 #include "debug.h"
 #include "bluetooth.h"
 #include "indicator.h"
+#include "data.h"
 
 BLEUart bleuart;
 BLEClientSandC  clientSandC;
@@ -56,8 +57,19 @@ bool check_mac_whitelist(uint8_t *mac) {
   return false;
 }
 
+bool check_mac_config(uint8_t *mac) {
+  if (!memcmp(config.bt_speed_sensor_id, mac, 6)) {
+    return true;
+  }
+  if (!memcmp(config.bt_power_sensor_id, mac, 6)) {
+    return true;
+  }
+
+  return false;
+}
+
 void scan_callback(ble_gap_evt_adv_report_t* report) {
-  if (check_mac_whitelist(report->peer_addr.addr)) {
+  if (check_mac_config(report->peer_addr.addr)) {
     DEBUG_PRINT("Connecting to device with MAC %02X:%02X:%02X:%02X:%02X:%02X"
       " Signal = %d dBm\n",
       report->peer_addr.addr[5], report->peer_addr.addr[4],

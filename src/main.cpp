@@ -34,8 +34,10 @@
 #include "uart_cmd.h"
 #include "indicator.h"
 #include "file.h"
+#include "data.h"
 
-#define SERIAL_TIMEOUT        5000
+// Global variables
+config_data config;
 
 void bluetooth_rx_callback(const char* cmd, int cmd_len, void* ctx) {
   DEBUG_PRINT("Recieved data [%s]\n", cmd);
@@ -108,7 +110,9 @@ void loop() {
   }
 
   if ((millis() - last_loop_millis) > 3000) {
-    DEBUG_PRINT("off_timer = %ld\n", off_timer);
+    // First check for new settings
+    file_loop();
+
     float speed = bluetooth_calculate_speed();
     if (speed >= 20.0) {
       op = 255;
@@ -122,13 +126,19 @@ void loop() {
     }
 
     // Check for off timer
+
+    DEBUG_PRINT("off_timer = %ld\n", off_timer);
     if (((millis() - off_timer) > 30000L) && (speed < 1.5)) {
       DEBUG_PRINT("off_timer countdown = %ld\n", millis() - off_timer);
       op = 0;
     }
 
+    // Set indicators
+
     indicator.setLevel(0, op);
     indicator.setLevel(1, op);
+
+    // Set the fan output
     triac_set_output(op, op);
 
     DEBUG_PRINT("Mains Frequency          = %f\n", calc_mains_freq());

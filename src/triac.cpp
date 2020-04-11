@@ -27,6 +27,7 @@
 #include "wiring.h"
 #include "debug.h"
 #include "triac.h"
+#include "data.h"
 
 TimerClass triac_inttimer(2);
 
@@ -119,18 +120,18 @@ void triac_set_output(uint8_t op1, uint8_t op2) {
   if (op1 == 0) {
     fan1_delay = 0;
   } else {
-    fan1_delay = 5000L - (5000L * op1 / 255L);
+    fan1_delay = config.triac_off_delay - (config.triac_off_delay * op1 / 255L);
     if (fan1_delay == 0) {
-      fan1_delay = 1;
+      fan1_delay = config.triac_on_delay;
     }
   }
 
   if (op2 == 0) {
     fan2_delay = 0;
   } else {
-    fan2_delay = 5000L - (5000L * op2 / 255L);
+    fan2_delay = config.triac_off_delay - (config.triac_off_delay * op2 / 255L);
     if (fan2_delay == 0) {
-      fan2_delay = 1;
+      fan2_delay = config.triac_on_delay;
     }
   }
 

@@ -22,12 +22,22 @@
 // SOFTWARE.
 //
 
-#ifndef SRC_FILE_H_
-#define SRC_FILE_H_
+#ifndef SRC_DATA_H_
+#define SRC_DATA_H_
 
-#include <SdFat.h>
+#define SERIAL_TIMEOUT              5000
+#define CONFIG_JSON_SIZE            2048
+#define CONFIG_FILENAME             "settings.json"
 
-FatFileSystem file_setup(void);
-void file_loop(void);
+typedef struct {
+    float min_speed;
+    float max_speed;
+    unsigned long triac_off_delay;
+    unsigned long triac_on_delay;
+    uint8_t bt_speed_sensor_id[6];
+    uint8_t bt_power_sensor_id[6];
+} config_data;
 
-#endif  // SRC_FILE_H_
+extern config_data config;
+
+#endif  // SRC_DATA_H_

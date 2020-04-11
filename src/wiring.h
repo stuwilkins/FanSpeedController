@@ -31,4 +31,3 @@
 #define PIN_STRIP             10
 
 #endif  // SRC_WIRING_H_
-
