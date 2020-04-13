@@ -37,6 +37,7 @@
 #include "config.h"
 
 // Global variables
+
 config_data config;
 
 void bluetooth_rx_callback(const char* cmd, int cmd_len, void* ctx) {
